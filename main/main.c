@@ -95,6 +95,7 @@ void app_main(void) {
   print_esp_info();
   gpio_init();
   tiny_usb_init();
+  vTaskDelay(pdMS_TO_TICKS(1000));
   lv_init();
   display_init();
   touch_init();

@@ -95,11 +95,17 @@ void tiny_usb_init(void) {
   tusb_cfg.port = TINYUSB_PORT_FULL_SPEED_0;
   tusb_cfg.phy.skip_setup = true;
 
-  ESP_ERROR_CHECK(tinyusb_driver_install(&tusb_cfg));
+  vTaskDelay(pdMS_TO_TICKS(1000));
+
+  esp_err_t ret = tinyusb_driver_install(&tusb_cfg);
+  if (ret != ESP_OK) {
+    ESP_LOGE(TAG, "TinyUSB driver install failed: %s", esp_err_to_name(ret));
+    return;
+  }
   ESP_LOGI(TAG, "TinyUSB driver installed");
 
   // Give USB time to enumerate
-  vTaskDelay(pdMS_TO_TICKS(100));
+  vTaskDelay(pdMS_TO_TICKS(1000));
 
   // Configure CDC ACM for DATA interface (ITF 1)
   tinyusb_config_cdcacm_t acm_cfg_data = {
