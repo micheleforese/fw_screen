@@ -26,8 +26,7 @@
 #include "lvgl.h"
 #include "lvgl_ui.h"
 #include "screen.h"
-#include "uart_utils.h"
-
+#include "tusb_cdc.h"
 
 #include "config.h"
 
@@ -95,7 +94,7 @@ void app_main(void) {
 
   print_esp_info();
   gpio_init();
-  usb_uart_init();
+  tiny_usb_init();
   lv_init();
   display_init();
   touch_init();

@@ -1,4 +1,6 @@
 #include "lvgl_ui.h"
+#include "data.h"
+#include "tusb_cdc.h"
 
 WindLabels windLabels;
 ParticulateMatterLabels particulateMatterLabels;
@@ -85,7 +87,7 @@ static void btn_power_off_handler(lv_event_t *e) {
     cJSON *json = cJSON_CreateObject();
     cJSON_AddStringToObject(json, "type", "command");
     cJSON_AddStringToObject(json, "command", "POWER OFF");
-    usb_json_send(json);
+    tusb_json_write(json);
     cJSON_Delete(json);
 
     ESP_LOGI(TAG, "Power OFF");
@@ -100,7 +102,7 @@ static void btn_measure_start_handler(lv_event_t *e) {
     cJSON *json = cJSON_CreateObject();
     cJSON_AddStringToObject(json, "type", "command");
     cJSON_AddStringToObject(json, "command", "MEASURE START");
-    usb_json_send(json);
+    tusb_json_write(json);
     cJSON_Delete(json);
 
     ESP_LOGI(TAG, "MEASURE START");
@@ -115,7 +117,7 @@ static void btn_measure_stop_handler(lv_event_t *e) {
     cJSON *json = cJSON_CreateObject();
     cJSON_AddStringToObject(json, "type", "command");
     cJSON_AddStringToObject(json, "command", "MEASURE STOP");
-    usb_json_send(json);
+    tusb_json_write(json);
     cJSON_Delete(json);
 
     ESP_LOGI(TAG, "MEASURE STOP");

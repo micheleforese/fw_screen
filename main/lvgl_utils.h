@@ -9,7 +9,6 @@
 #include "lv_demos.h"
 #include "lvgl.h"
 #include "screen.h"
-#include "uart_utils.h"
 
 #define LVGL_TICK_PERIOD_MS 2
 #define LVGL_TASK_MAX_DELAY_MS 500

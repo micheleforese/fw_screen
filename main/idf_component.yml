@@ -3,3 +3,4 @@ dependencies:
   lvgl/lvgl: ~8.4.0
   espressif/esp_lcd_touch_cst816s: ^1.0.3
   espressif/cjson: ^1.7.19
+  espressif/esp_tinyusb: ^2.0.1~1

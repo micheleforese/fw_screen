@@ -3,7 +3,6 @@
 #include "esp_log.h"
 #include "lvgl.h"
 #include "screen.h"
-#include "uart_utils.h"
 
 typedef struct WindLabels {
   lv_obj_t *timestamp;
