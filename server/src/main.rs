@@ -1,18 +1,20 @@
 use clap::Parser;
 use serde::{Deserialize, Serialize};
-use std::io::{BufRead, BufReader, Write};
+use serde_json::json;
+use serialport::SerialPort;
+use std::io::{self, BufRead, BufReader, Write};
 use std::sync::{Arc, Mutex};
+use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use std::{io, thread};
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about = "Serial JSON sender: listen first, then periodically send two example JSON messages")]
 struct Args {
-    /// Serial port path (e.g., /dev/ttyUSB0)
+    /// Serial port path (e.g. /dev/ttyUSB0 or COM3)
     #[arg(short, long)]
     port: String,
 
-    /// Time between messages in milliseconds
+    /// Time between sending the two messages, in milliseconds
     #[arg(short, long, default_value_t = 3000)]
     time: u64,
 }
@@ -76,17 +78,24 @@ struct SpsMessage {
     sensor_data: SensorData,
 }
 
-fn get_timestamp() -> f64 {
+fn now_secs_f64() -> f64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs_f64()
 }
 
+fn now_secs_u64() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+}
+
 fn create_anm_message() -> AnmMessage {
     AnmMessage {
         topic: "anm".to_string(),
-        timestamp: get_timestamp(),
+        timestamp: now_secs_f64(),
         x_kalman: 0.091875345469413672,
         x_axe_autocalibration: true,
         x_measure_autocalibration: false,
@@ -105,10 +114,7 @@ fn create_anm_message() -> AnmMessage {
 fn create_sps_message() -> SpsMessage {
     SpsMessage {
         topic: "sps".to_string(),
-        timestamp: SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs(),
+        timestamp: now_secs_u64(),
         sensor_data: SensorData {
             mass_density: MassDensity {
                 pm1_0: 7.512,
@@ -134,8 +140,9 @@ fn create_sps_message() -> SpsMessage {
 fn main() -> io::Result<()> {
     let args = Args::parse();
 
-    println!("Opening serial port: {}", args.port);
-    println!("Send interval: {}ms", args.time);
+    println!("Serial JSON sender");
+    println!("Port: {}", args.port);
+    println!("Send interval (ms): {}", args.time);
 
     // Open serial port
     let port = serialport::new(&args.port, 115200)
@@ -143,86 +150,112 @@ fn main() -> io::Result<()> {
         .open()
         .expect("Failed to open serial port");
 
+    // Wrap in Arc<Mutex<>> so both threads can use it
     let port = Arc::new(Mutex::new(port));
 
-    // Clone for reader thread
-    let port_reader = Arc::clone(&port);
+    // START READER THREAD FIRST
+    {
+        let port_reader = Arc::clone(&port);
 
-    // Spawn reader thread
-    let reader_handle = thread::spawn(move || {
-        let port = port_reader.lock().unwrap();
-        let mut reader = BufReader::new(port.try_clone().unwrap());
-        
-        loop {
-            let mut line = String::new();
-            match reader.read_line(&mut line) {
-                Ok(0) => continue, // EOF
-                Ok(_) => {
-                    let trimmed = line.trim();
-                    if !trimmed.is_empty() {
-                        // Try to parse as JSON and identify message type
-                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(trimmed) {
-                            if let Some(topic) = json.get("topic").and_then(|t| t.as_str()) {
-                                match topic {
-                                    "anm" => println!("\n[RECV] ANM message"),
-                                    "sps" => println!("\n[RECV] SPS message"),
-                                    _ => println!("\n[RECV] Unknown message type: {}", topic),
-                                }
-                            } else {
-                                println!("\n[RECV] Message without topic");
+        thread::spawn(move || {
+            // Acquire a clone of the underlying serial port for reading
+            // We lock briefly to call try_clone() which clones the OS handle.
+            let cloned = {
+                let guard = port_reader.lock().expect("port lock poisoned");
+                guard.try_clone().expect("Failed to clone serial port for reading")
+            };
+
+            let mut reader = BufReader::new(cloned);
+            println!("[INFO] Reader thread started — listening on serial port...");
+
+            loop {
+                let mut line = String::new();
+                match reader.read_line(&mut line) {
+                    Ok(0) => {
+                        // No data available (EOF) — small sleep to avoid busy loop
+                        thread::sleep(Duration::from_millis(10));
+                        continue;
+                    }
+                    Ok(_) => {
+                        let trimmed = line.trim();
+                        if trimmed.is_empty() {
+                            continue;
+                        }
+
+                        // Print raw line and try to pretty-print JSON if possible
+                        println!("\n[RECV] {}", trimmed);
+
+                        match serde_json::from_str::<serde_json::Value>(trimmed) {
+                            Ok(json_val) => {
+                                println!("{}", serde_json::to_string_pretty(&json_val).unwrap());
                             }
-                            println!("{}", serde_json::to_string_pretty(&json).unwrap());
-                        } else {
-                            println!("\n[RECV] Non-JSON data: {}", trimmed);
+                            Err(_) => {
+                                // not JSON
+                            }
                         }
                     }
+                    Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {
+                        // timeout — continue reading
+                        continue;
+                    }
+                    Err(e) => {
+                        eprintln!("[ERROR] Reader error: {}", e);
+                        // short pause before retrying to avoid tight loop on fatal errors
+                        thread::sleep(Duration::from_millis(500));
+                    }
                 }
-                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => continue,
-                Err(e) => {
-                    eprintln!("Error reading from serial port: {}", e);
-                    break;
-                }
             }
-        }
-    });
-
-    // Main sending loop
-    loop {
-        thread::sleep(Duration::from_millis(args.time));
-
-        let mut port = port.lock().unwrap();
-
-        // Send ANM message
-        let anm_msg = create_anm_message();
-        let anm_json = serde_json::to_string(&anm_msg).unwrap();
-        
-        println!("\n[SEND] ANM message");
-        println!("{}", anm_json);
-
-        match port.write_all(format!("{}\n", anm_json).as_bytes()) {
-            Ok(_) => port.flush().ok(),
-            Err(e) => {
-                eprintln!("Error writing ANM to serial port: {}", e);
-                break;
-            }
-        };
-
-        // Send SPS message immediately after
-        let sps_msg = create_sps_message();
-        let sps_json = serde_json::to_string(&sps_msg).unwrap();
-        
-        println!("\n[SEND] SPS message");
-        println!("{}", sps_json);
-
-        match port.write_all(format!("{}\n", sps_json).as_bytes()) {
-            Ok(_) => port.flush().ok(),
-            Err(e) => {
-                eprintln!("Error writing SPS to serial port: {}", e);
-                break;
-            }
-        };
+        });
     }
 
-    reader_handle.join().unwrap();
-    Ok(())
+    // Give the reader a short moment to initialize and start listening.
+    thread::sleep(Duration::from_millis(500));
+
+    // SENDER LOOP
+    loop {
+        // Wait interval before sending next pair
+        thread::sleep(Duration::from_millis(args.time));
+
+        // prepare messages
+        let anm = create_anm_message();
+        let sps = create_sps_message();
+
+        // serialize
+        let anm_json = serde_json::to_string(&anm).expect("Failed to serialize ANM");
+        let sps_json = serde_json::to_string(&sps).expect("Failed to serialize SPS");
+
+        // Acquire lock for writing (short-lived)
+        {
+            let mut port_guard = port.lock().expect("port lock poisoned");
+
+            // write ANM with newline
+            if let Err(e) = port_guard.write_all(anm_json.as_bytes()) {
+                eprintln!("[ERROR] Failed to write ANM: {}", e);
+            } else {
+                // ensure newline and flush
+                if let Err(e) = port_guard.write_all(b"\n") {
+                    eprintln!("[ERROR] Failed to write newline after ANM: {}", e);
+                }
+                if let Err(e) = port_guard.flush() {
+                    eprintln!("[ERROR] Failed to flush after ANM: {}", e);
+                }
+                println!("\n[SEND] ANM\n{}", anm_json);
+            }
+
+            // write SPS with newline
+            if let Err(e) = port_guard.write_all(sps_json.as_bytes()) {
+                eprintln!("[ERROR] Failed to write SPS: {}", e);
+            } else {
+                if let Err(e) = port_guard.write_all(b"\n") {
+                    eprintln!("[ERROR] Failed to write newline after SPS: {}", e);
+                }
+                if let Err(e) = port_guard.flush() {
+                    eprintln!("[ERROR] Failed to flush after SPS: {}", e);
+                }
+                println!("\n[SEND] SPS\n{}", sps_json);
+            }
+        }
+
+        // loop continues...
+    }
 }

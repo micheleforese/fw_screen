@@ -5,7 +5,7 @@ idf_component_register(
     "lvgl_utils.c"
     "lvgl_ui.c"
     "data.c"
-    "tusb_cdc.c"
-    REQUIRES spi_flash esp_psram json tinyusb
+    "usb_cdc.c"
+    REQUIRES spi_flash esp_psram json
     INCLUDE_DIRS "."
 )

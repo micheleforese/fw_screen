@@ -4,14 +4,14 @@
  * SPDX-License-Identifier: CC0-1.0
  */
 
-#include <inttypes.h>
-#include <stdio.h>
-
 #include "esp_chip_info.h"
 #include "esp_flash.h"
 #include "esp_system.h"
 #include "esp_timer.h"
 #include "sdkconfig.h"
+#include "usb_cdc.h"
+#include <inttypes.h>
+#include <stdio.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -26,7 +26,6 @@
 #include "lvgl.h"
 #include "lvgl_ui.h"
 #include "screen.h"
-#include "tusb_cdc.h"
 
 #include "config.h"
 
@@ -94,7 +93,7 @@ void app_main(void) {
 
   print_esp_info();
   gpio_init();
-  tiny_usb_init();
+  usb_cdc_init();
   vTaskDelay(pdMS_TO_TICKS(1000));
   lv_init();
   display_init();

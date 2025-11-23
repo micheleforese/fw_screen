@@ -186,6 +186,10 @@ ParseReturnCode parse_data(cJSON *json, AnemometerData *anm_data,
       return PRC_UPDATE_PARTICULATE_MATTER;
   }
 
+  if (strcmp(topic->valuestring, "type") == 0) {
+    ESP_LOGI(TAG, "COMMAND");
+  }
+
   ESP_LOGI(TAG, "Unknown topic: %s", topic->valuestring);
   return PRC_PARSING_ERROR;
 }
