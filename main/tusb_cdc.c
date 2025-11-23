@@ -18,6 +18,83 @@ static const char *TAG = "DUAL_CDC";
 static char json_rx_buffer[JSON_BUFFER_SIZE];
 static size_t json_rx_index = 0;
 
+// Interface indices
+enum {
+  ITF_NUM_CDC_LOGS = 0,
+  ITF_NUM_CDC_LOGS_DATA,
+  ITF_NUM_CDC_DATA,
+  ITF_NUM_CDC_DATA_DATA,
+  ITF_NUM_TOTAL
+};
+
+// Endpoint addresses
+#define EPNUM_CDC_LOGS_NOTIF 0x81
+#define EPNUM_CDC_LOGS_OUT 0x02
+#define EPNUM_CDC_LOGS_IN 0x82
+
+#define EPNUM_CDC_DATA_NOTIF 0x83
+#define EPNUM_CDC_DATA_OUT 0x04
+#define EPNUM_CDC_DATA_IN 0x84
+
+// USB PID for dual CDC
+#define USB_TUSB_PID (0x4002)
+
+// Device Descriptor
+static const tusb_desc_device_t dual_cdc_device_descriptor = {
+    .bLength = sizeof(tusb_desc_device_t),
+    .bDescriptorType = TUSB_DESC_DEVICE,
+    .bcdUSB = 0x0200,
+    .bDeviceClass = TUSB_CLASS_MISC,
+    .bDeviceSubClass = MISC_SUBCLASS_COMMON,
+    .bDeviceProtocol = MISC_PROTOCOL_IAD,
+    .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
+    .idVendor = 0x303A, // Espressif VID
+    .idProduct = USB_TUSB_PID,
+    .bcdDevice = 0x0100,
+    .iManufacturer = 0x01,
+    .iProduct = 0x02,
+    .iSerialNumber = 0x03,
+    .bNumConfigurations = 0x01};
+
+// Configuration Descriptor
+#define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + 2 * TUD_CDC_DESC_LEN)
+
+static const uint8_t dual_cdc_configuration_descriptor[] = {
+    // Config: interface count, string index, total length, attribute, power in
+    // mA
+    TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, CONFIG_TOTAL_LEN, 0x00, 500),
+
+    // Interface 0: CDC Logs Port
+    // Interface number, string index, EP notification, EP data out, EP data in
+    TUD_CDC_DESCRIPTOR(ITF_NUM_CDC_LOGS, 4, EPNUM_CDC_LOGS_NOTIF, 8,
+                       EPNUM_CDC_LOGS_OUT, EPNUM_CDC_LOGS_IN, 64),
+
+    // Interface 2: CDC Data Port
+    // Interface number, string index, EP notification, EP data out, EP data in
+    TUD_CDC_DESCRIPTOR(ITF_NUM_CDC_DATA, 5, EPNUM_CDC_DATA_NOTIF, 8,
+                       EPNUM_CDC_DATA_OUT, EPNUM_CDC_DATA_IN, 64),
+};
+
+// String Descriptors
+static const char *string_desc_arr[] = {
+    (const char[]){0x09, 0x04},   // 0: Language (English)
+    "Espressif",                  // 1: Manufacturer
+    "ESP32-S3 Dual CDC Device",   // 2: Product
+    "12345678",                   // 3: Serial Number
+    "ESP32-S3 Logs Console",      // 4: CDC Interface 0 (Logs)
+    "ESP32-S3 JSON Data Channel", // 5: CDC Interface 1 (Data)
+};
+
+// Descriptor configuration structure
+static const tinyusb_desc_config_t dual_cdc_descriptor_config = {
+    .device = &dual_cdc_device_descriptor,
+    .string = string_desc_arr,
+    .string_count = sizeof(string_desc_arr) / sizeof(string_desc_arr[0]),
+    .full_speed_config = dual_cdc_configuration_descriptor,
+    .qualifier = NULL,         // Not needed for Full-Speed device
+    .high_speed_config = NULL, // Not using High-Speed
+};
+
 // Callback for CDC data received on the DATA interface
 void tusb_cdc_rx_callback(int itf, cdcacm_event_t *event) {
   if (itf != CDC_ITF_DATA) {
@@ -88,6 +165,7 @@ void tiny_usb_init(void) {
   tinyusb_config_t tusb_cfg = TINYUSB_DEFAULT_CONFIG();
   tusb_cfg.port = TINYUSB_PORT_FULL_SPEED_0;
   tusb_cfg.phy.skip_setup = true;
+  tusb_cfg.descriptor = dual_cdc_descriptor_config;
 
   vTaskDelay(pdMS_TO_TICKS(1000));
 
