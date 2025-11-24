@@ -45,6 +45,32 @@
     echo '{"topic":"sps","timestamp":1762784698,"sensor_data":{"mass_density":{"pm1.0":7.512,"pm2.5":7.944,"pm4.0":7.944,"pm10":7.944},"particle_count":{"pm0.5":51.835,"pm1.0":59.757,"pm2.5":59.954,"pm4.0":59.968,"pm10":59.98},"particle_size":0.443,"mass_density_unit":"ug/m3","particle_count_unit":"#/cm3","particle_size_unit":"um"}}' > /dev/ttyACM1
     ```
 
+## Flash The .bin file
+
+1. Follow the instructions from [this](https://docs.espressif.com/projects/esptool/en/latest/esp32/installation.html) site.
+
+```shell
+sudo apt install python pipx
+sudo pipx unsurepath
+
+pipx install esptool
+esptool --version
+```
+
+```shell
+esptool --chip esp32s3 \
+  --port /dev/ttyACM0 -b 460800 \
+  --before default-reset \
+  --after hard-reset \
+  write-flash \
+  --flash-mode dio \
+  --flash-size 2MB \
+  --flash-freq 80m \
+  0x0 ./build/bootloader/bootloader.bin \
+  0x8000 ./build/partition_table/partition-table.bin \
+  0x10000 ./build/fw_screen.bin
+```
+
 ## Connect the esp-idf tools
 
 ```shell
