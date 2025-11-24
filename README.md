@@ -1,5 +1,50 @@
 # Anemometer Screen APP
 
+## Instructions
+
+1. Clone the repository
+
+    ```shell
+    git clone https://github.com/micheleforese/fw_screen.git
+    cd fw_screen
+    ```
+
+2. Open a new Terminal session:
+
+    ```shell
+    source $HOME/esp/v5.5.1/esp-idf/export.sh
+    idf.py make flash
+    ```
+
+3. Press the Reset Button
+4. Open another Session.
+5. check for the 2 ports:
+
+    ```shell
+    ls /dev/ttyACM* -la
+    ```
+
+    example:
+
+    ```shell
+    crw-rw----@ 166,0 root 24 Nov 01:46 /dev/ttyACM0
+    crw-rw----@ 166,1 root 24 Nov 01:48 /dev/ttyACM1
+    ```
+
+6. Try to send example JSON
+
+    > Wind data
+
+    ```shell
+    echo '{"topic":"anm","timestamp":12,"x_kalman":2,"x_axe_autocalibration":true,"x_measure_autocalibration":false,"x_sonic_temp":21.219,"y_kalman":0.058,"y_axe_autocalibration":true,"y_measure_autocalibration":false,"y_sonic_temp":21.289,"z_kalman":-0.034,"z_axe_autocalibration":true,"z_measure_autocalibration":false,"z_sonic_temp":21.285}' > /dev/ttyACM1
+    ```
+
+    > Particulate Matter Data
+
+    ```shell
+    echo '{"topic":"sps","timestamp":1762784698,"sensor_data":{"mass_density":{"pm1.0":7.512,"pm2.5":7.944,"pm4.0":7.944,"pm10":7.944},"particle_count":{"pm0.5":51.835,"pm1.0":59.757,"pm2.5":59.954,"pm4.0":59.968,"pm10":59.98},"particle_size":0.443,"mass_density_unit":"ug/m3","particle_count_unit":"#/cm3","particle_size_unit":"um"}}' > /dev/ttyACM1
+    ```
+
 ## Connect the esp-idf tools
 
 ```shell
@@ -89,3 +134,12 @@ source $HOME/esp/v5.5.1/esp-idf/export.sh
      "command": "MEASURE STOP"
    }
    ```
+
+## sdkconfig
+
+1. `sdkconfig.defaults`
+
+    ```config
+    CONFIG_TINYUSB_CDC_ENABLED=y
+    CONFIG_TINYUSB_CDC_COUNT=2
+    ```

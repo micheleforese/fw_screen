@@ -1,12 +1,12 @@
-
 #include "usb_cdc.h"
 #include "cJSON.h"
 #include "data.h"
 #include "driver/usb_serial_jtag.h"
+#include "driver/usb_serial_jtag_vfs.h"
 #include "esp_log.h"
 #include "esp_vfs_dev.h"
-#include "esp_vfs_usb_serial_jtag.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 #include "freertos/task.h"
 #include <stdio.h>
 #include <string.h>
@@ -16,20 +16,25 @@ static const char *TAG = "USB_CDC";
 static char json_buffer[JSON_BUFFER_SIZE];
 static size_t json_index = 0;
 
-// Process received JSON command
-void process_json_command(const char *json_str) {
-  ESP_LOGI(TAG, "Processing JSON: %s", json_str);
+static QueueHandle_t json_queue;
 
-  cJSON *json = cJSON_Parse(json_str);
-  if (json == NULL) {
-    ESP_LOGW(TAG, "Invalid JSON");
-    return;
+void lvgl_json_task(void *arg) {
+  char received_json[JSON_BUFFER_SIZE];
+
+  while (1) {
+    if (xQueueReceive(json_queue, received_json, portMAX_DELAY) == pdTRUE) {
+      ESP_LOGI(TAG, "QUEUE RECIEVED ITEM %s", received_json);
+      cJSON *json = cJSON_Parse(received_json);
+      if (!json) {
+        ESP_LOGW(TAG, "Invalid JSON: %s", received_json);
+        continue;
+      }
+
+      on_json_received(json);
+      cJSON_Delete(json);
+      free(received_json);
+    }
   }
-
-  ESP_LOGI(TAG, "JSON is valid");
-
-  on_json_received(json);
-  cJSON_Delete(json);
 }
 
 // Task to read from USB CDC console
@@ -51,12 +56,20 @@ void usb_cdc_read_task(void *arg) {
         // Look for newline (end of JSON message)
         if (c == '\n' || c == '\r') {
           if (json_index > 0) {
+
             // Null-terminate and process
             json_buffer[json_index] = '\0';
 
             // Skip if it's just a log line or empty
             if (json_buffer[0] == '{') {
-              process_json_command(json_buffer);
+
+              char *json_copy = malloc(json_index + 1);
+              if (json_copy) {
+                memcpy(json_copy, json_buffer, json_index + 1);
+                if (xQueueSend(json_queue, &json_copy, 0) != pdTRUE) {
+                  ESP_LOGW(TAG, "JSON queue full, dropping message");
+                }
+              }
             }
 
             json_index = 0;
@@ -92,15 +105,22 @@ void usb_cdc_init(void) {
     return;
   }
 
-  // Configure VFS to use USB CDC for stdin/stdout
-  esp_vfs_usb_serial_jtag_use_driver();
+  usb_serial_jtag_vfs_use_driver();
 
-  ESP_LOGI(TAG, "USB CDC Console initialized");
-  ESP_LOGI(TAG, "Send JSON commands ending with newline");
-  ESP_LOGI(TAG, "Example: {\"command\":\"ping\"}");
+  json_queue = xQueueCreate(JSON_QUEUE_LENGTH, JSON_BUFFER_SIZE);
+  if (!json_queue) {
+    ESP_LOGE(TAG, "Failed to create JSON queue");
+    return;
+  }
 
+  xTaskCreate(lvgl_json_task, "lvgl_json", 8192, NULL, 5, NULL);
   // Create task to read from USB CDC
   xTaskCreate(usb_cdc_read_task, "usb_cdc_read", 4096, NULL, 5, NULL);
+}
+
+void usb_cdc_write(const char *msg) {
+  printf("%s\n", msg);
+  fflush(stdout);
 }
 
 void usb_cdc_json_write(cJSON *json) {
@@ -108,9 +128,4 @@ void usb_cdc_json_write(cJSON *json) {
   usb_cdc_write(json_str);
 
   cJSON_free(json_str);
-}
-
-void usb_cdc_write(const char *msg) {
-  printf("%s\n", msg);
-  fflush(stdout);
 }

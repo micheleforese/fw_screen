@@ -64,9 +64,15 @@ bool parse_particulate_matter_data(cJSON *root,
 
   cJSON *cjson_timestamp = cJSON_GetObjectItem(root, "timestamp");
 
+  if (!cJSON_IsNumber(cjson_timestamp)) {
+    ESP_LOGI(TAG, "ROOT->timestamp: NOT FOUND");
+    return false;
+  }
+
   cJSON *cjson_sensor_data = cJSON_GetObjectItem(root, "sensor_data");
 
   if (!cJSON_IsObject(cjson_sensor_data)) {
+    ESP_LOGI(TAG, "ROOT->timestamp: NOT FOUND");
     return false;
   }
 
@@ -74,19 +80,21 @@ bool parse_particulate_matter_data(cJSON *root,
       cJSON_GetObjectItem(cjson_sensor_data, "mass_density");
 
   if (!cJSON_IsObject(cjson_mass_density)) {
+    ESP_LOGI(TAG, "ROOT->sensor_data->mass_density: NOT FOUND");
     return false;
   }
 
   cJSON *cjson_md_pm1_0 = cJSON_GetObjectItem(cjson_mass_density, "pm1.0");
 
-  cJSON *cjson_md_pm2_5 = cJSON_GetObjectItem(cjson_mass_density, "pm2_5");
+  cJSON *cjson_md_pm2_5 = cJSON_GetObjectItem(cjson_mass_density, "pm2.5");
 
-  cJSON *cjson_md_pm4_0 = cJSON_GetObjectItem(cjson_mass_density, "pm4_0");
+  cJSON *cjson_md_pm4_0 = cJSON_GetObjectItem(cjson_mass_density, "pm4.0");
 
   cJSON *cjson_md_pm10 = cJSON_GetObjectItem(cjson_mass_density, "pm10");
 
   if (!cJSON_IsNumber(cjson_md_pm1_0) || !cJSON_IsNumber(cjson_md_pm2_5) ||
       !cJSON_IsNumber(cjson_md_pm4_0) || !cJSON_IsNumber(cjson_md_pm10)) {
+    ESP_LOGI(TAG, "ROOT->sensor_data->mass_density->pm(?): NOT FOUND");
     return false;
   }
 
@@ -94,20 +102,22 @@ bool parse_particulate_matter_data(cJSON *root,
       cJSON_GetObjectItem(cjson_sensor_data, "particle_count");
 
   if (!cJSON_IsObject(cjson_particle_count)) {
+    ESP_LOGI(TAG, "ROOT->sensor_data->particle_count: NOT FOUND");
     return false;
   }
-  cJSON *cjson_pc_pm0_5 = cJSON_GetObjectItem(cjson_particle_count, "pm0_5");
+  cJSON *cjson_pc_pm0_5 = cJSON_GetObjectItem(cjson_particle_count, "pm0.5");
   cJSON *cjson_pc_pm1_0 = cJSON_GetObjectItem(cjson_particle_count, "pm1.0");
 
-  cJSON *cjson_pc_pm2_5 = cJSON_GetObjectItem(cjson_particle_count, "pm2_5");
+  cJSON *cjson_pc_pm2_5 = cJSON_GetObjectItem(cjson_particle_count, "pm2.5");
 
-  cJSON *cjson_pc_pm4_0 = cJSON_GetObjectItem(cjson_particle_count, "pm4_0");
+  cJSON *cjson_pc_pm4_0 = cJSON_GetObjectItem(cjson_particle_count, "pm4.0");
 
   cJSON *cjson_pc_pm10 = cJSON_GetObjectItem(cjson_particle_count, "pm10");
 
   if (!cJSON_IsNumber(cjson_pc_pm0_5) || !cJSON_IsNumber(cjson_pc_pm1_0) ||
       !cJSON_IsNumber(cjson_pc_pm2_5) || !cJSON_IsNumber(cjson_pc_pm4_0) ||
       !cJSON_IsNumber(cjson_pc_pm10)) {
+    ESP_LOGI(TAG, "ROOT->sensor_data->particle_count->pm(?): NOT FOUND");
     return false;
   }
 
@@ -123,10 +133,21 @@ bool parse_particulate_matter_data(cJSON *root,
   cJSON *cjson_particle_size_unit =
       cJSON_GetObjectItem(cjson_sensor_data, "particle_size_unit");
 
-  if (!cJSON_IsNumber(cjson_particle_size) ||
-      !cJSON_IsString(cjson_mass_density_unit) ||
-      !cJSON_IsString(cjson_particle_count_unit) ||
-      !cJSON_IsString(cjson_particle_size_unit)) {
+  if (!cJSON_IsNumber(cjson_particle_size)) {
+    ESP_LOGI(TAG, "ROOT->particle_size: NOT FOUND");
+    return false;
+  }
+
+  if (!cJSON_IsString(cjson_mass_density_unit)) {
+    ESP_LOGI(TAG, "ROOT->mass_density_unit: NOT FOUND");
+    return false;
+  }
+  if (!cJSON_IsString(cjson_particle_count_unit)) {
+    ESP_LOGI(TAG, "ROOT->particle_count_unit: NOT FOUND");
+    return false;
+  }
+  if (!cJSON_IsString(cjson_particle_size_unit)) {
+    ESP_LOGI(TAG, "ROOT->particle_size_unit: NOT FOUND");
     return false;
   }
 

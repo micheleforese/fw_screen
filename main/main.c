@@ -3,13 +3,12 @@
  *
  * SPDX-License-Identifier: CC0-1.0
  */
-
 #include "esp_chip_info.h"
 #include "esp_flash.h"
 #include "esp_system.h"
 #include "esp_timer.h"
 #include "sdkconfig.h"
-#include "usb_cdc.h"
+#include "tusb_cdc.h"
 #include <inttypes.h>
 #include <stdio.h>
 
@@ -26,8 +25,6 @@
 #include "lvgl.h"
 #include "lvgl_ui.h"
 #include "screen.h"
-
-#include "config.h"
 
 #include "esp_psram.h"
 
@@ -62,39 +59,10 @@ void print_esp_info(void) {
          esp_get_minimum_free_heap_size());
 }
 
-void test_spiram_psram(void) {
-  if (esp_psram_init() == ESP_OK) {
-    ESP_LOGI("PSRAM", "PSRAM inizializzata correttamente.");
-    ESP_LOGI("PSRAM", "Dimensione PSRAM: %d bytes", esp_psram_get_size());
-  } else {
-    ESP_LOGE("PSRAM", "Errore nell'inizializzazione della PSRAM.");
-  }
-}
-
-void gpio_init(void) {
-  // Configure pin as output
-  gpio_config_t io_conf_output = {.pin_bit_mask = (1ULL << GPIO_PIN),
-                                  .mode = GPIO_MODE_OUTPUT,
-                                  .pull_up_en = 0,
-                                  .pull_down_en = 0,
-                                  .intr_type = GPIO_INTR_DISABLE};
-  gpio_config(&io_conf_output);
-
-  gpio_config_t io_conf_input = {.pin_bit_mask = (1ULL << GPIO_PIN_READ),
-                                 .mode = GPIO_MODE_INPUT,
-                                 .pull_up_en = 1,
-                                 .pull_down_en = 0,
-                                 .intr_type = GPIO_INTR_DISABLE};
-  gpio_config(&io_conf_input);
-}
-
 void app_main(void) {
   lvgl_api_mux = xSemaphoreCreateRecursiveMutex();
 
   print_esp_info();
-  gpio_init();
-  usb_cdc_init();
-  vTaskDelay(pdMS_TO_TICKS(1000));
   lv_init();
   display_init();
   touch_init();
@@ -103,6 +71,7 @@ void app_main(void) {
   lv_port_indev_init();
   bsp_brightness_init();
   bsp_brightness_set_level(90);
+  tusb_cdc_init();
 
   if (lvgl_lock(-1)) {
     lvgl_anemometer_ui_init(lv_scr_act());

@@ -1,0 +1,16 @@
+{
+  "topic": "anm",
+  "timestamp": 12,
+  "x_kalman": 2,
+  "x_axe_autocalibration": true,
+  "x_measure_autocalibration": false,
+  "x_sonic_temp": 21.219,
+  "y_kalman": 0.058,
+  "y_axe_autocalibration": true,
+  "y_measure_autocalibration": false,
+  "y_sonic_temp": 21.289,
+  "z_kalman": -0.034,
+  "z_axe_autocalibration": true,
+  "z_measure_autocalibration": false,
+  "z_sonic_temp": 21.285
+}

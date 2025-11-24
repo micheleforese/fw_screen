@@ -2,7 +2,6 @@
 #include "esp_timer.h"
 #include "lvgl.h"
 
-#include "config.h"
 #include "data.h"
 
 #define LV_COLOR_DEPTH 32 // o 32 se il tuo display lo supporta

@@ -84,6 +84,6 @@ direct_dependencies:
 - espressif/esp_tinyusb
 - idf
 - lvgl/lvgl
-manifest_hash: 4fe5f1438e2a204dd9edc3b2fa6a254febc49cf851bd28e86b00c78446521b36
+manifest_hash: 1b55024fc105ded2053b445bd6a3936e8006c1325c4c6aa779a2480d10356ac6
 target: esp32s3
 version: 2.0.0

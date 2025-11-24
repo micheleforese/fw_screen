@@ -11,6 +11,7 @@
 
 #define RX_BUFFER_SIZE 2048
 #define JSON_BUFFER_SIZE 2048
+#define JSON_QUEUE_LENGTH 10
 
 void process_json_command(const char *json_str);
 void usb_cdc_read_task(void *arg);
