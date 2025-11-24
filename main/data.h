@@ -8,19 +8,19 @@ typedef struct AnemometerData {
   uint32_t timestamp;
 
   double x_kalman;
-  bool x_axe_autocalibration;
-  bool x_measure_autocalibration;
-  double x_sonic_temp;
+  bool autocalibrazione_asse_x;
+  bool autocalibrazione_misura_x;
+  double temp_sonica_x;
 
   double y_kalman;
-  bool y_axe_autocalibration;
-  bool y_measure_autocalibration;
-  double y_sonic_temp;
+  bool autocalibrazione_asse_y;
+  bool autocalibrazione_misura_y;
+  double temp_sonica_y;
 
   double z_kalman;
-  bool z_axe_autocalibration;
-  bool z_measure_autocalibration;
-  double z_sonic_temp;
+  bool autocalibrazione_asse_z;
+  bool autocalibrazione_misura_z;
+  double temp_sonica_z;
 } AnemometerData;
 
 extern AnemometerData anemometerData;
@@ -54,6 +54,8 @@ typedef enum {
   PRC_UPDATE_PARTICULATE_MATTER
 } ParseReturnCode;
 
+void anemometer_data_default(AnemometerData *anm_data);
+void particulate_matter_data_default(ParticulateMatterData *pm_data);
 bool parse_anemometer_data(cJSON *root, AnemometerData *anm_data);
 bool parse_particulate_matter_data(cJSON *root,
                                    ParticulateMatterData *sps_data);
