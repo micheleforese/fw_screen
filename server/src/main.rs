@@ -37,10 +37,10 @@ struct Args {
 
 fn match_topic(topic: &str) -> TopicType {
     match topic {
-        "/anemometer" => TopicType::Anemometer,
-        "/sps30" => TopicType::SPS30,
-        "/imu" => TopicType::Imu,
-        "/status" => TopicType::Status,
+        "anemometer" => TopicType::Anemometer,
+        "sps30" => TopicType::SPS30,
+        "imu" => TopicType::Imu,
+        "status" => TopicType::Status,
         _ => TopicType::Unknown,
     }
 }
@@ -122,16 +122,34 @@ async fn mqtt_to_serial_channel_task(
 }
 
 async fn mqtt_sender_task(mut rx: mpsc::Receiver<String>, mqtt_client: AsyncClient) {
-    while let Some(json) = rx.recv().await {
-        let topic = "/command";
+    while let Some(json_str) = rx.recv().await {
+        let topic = "command";
 
-        if let Err(e) = mqtt_client
-            .publish(topic, QoS::AtMostOnce, false, json.clone())
-            .await
-        {
-            eprintln!("Failed to publish MQTT message: {e}");
-        } else {
-            println!("Published to MQTT: {}", json);
+        match serde_json::from_str::<serde_json::Value>(&json_str) {
+            Ok(json_value) => {
+                if let Some(command_value) = json_value.get("command") {
+                    // Estraiamo la stringa interna senza virgolette
+                    if let Some(command_str) = command_value.as_str() {
+                        let mqtt_message = format!("{}", command_str);
+
+                        if let Err(e) = mqtt_client
+                            .publish(topic, QoS::AtMostOnce, false, mqtt_message.clone())
+                            .await
+                        {
+                            eprintln!("Failed to publish MQTT message: {e}");
+                        } else {
+                            println!("Published to MQTT: {}", mqtt_message);
+                        }
+                    } else {
+                        eprintln!("'command' is not a string in JSON: {}", json_str);
+                    }
+                } else {
+                    eprintln!("JSON does not contain 'command' field: {}", json_str);
+                }
+            }
+            Err(e) => {
+                eprintln!("Failed to parse JSON: {e}, input: {}", json_str);
+            }
         }
     }
 }
