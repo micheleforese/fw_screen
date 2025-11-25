@@ -33,6 +33,9 @@ struct Args {
 
     #[arg(long)]
     mqtt_port: u16,
+
+    #[arg(long)]
+    n: u16,
 }
 
 fn match_topic(topic: &str) -> TopicType {
@@ -161,7 +164,7 @@ async fn serial_to_mqtt_channel_task(
     let mut buffer = String::new();
     loop {
         let mut port = port.lock().await;
-        let mut tmp_buf = [0u8; 1024];
+        let mut tmp_buf = [0u8; 1024*20];
         match port.read(&mut tmp_buf) {
             Ok(n) if n > 0 => {
                 buffer.push_str(&String::from_utf8_lossy(&tmp_buf[..n]));
@@ -200,6 +203,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("MQTT id: {}", args.mqtt_id);
     println!("MQTT Host: {}", args.mqtt_host);
     println!("MQTT Port: {}", args.mqtt_port);
+    println!("N: {}", args.n);
 
     let (tx, rx) = mpsc::channel::<String>(100);
     let (tx_serial_to_mqtt, rx_serial_to_mqtt) = mpsc::channel::<String>(100);
@@ -263,6 +267,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         mqtt_sender_task(rx_serial_to_mqtt, client_clone).await;
     });
 
+    let mut counter = 0;
+
     loop {
         let event = eventloop.poll().await;
 
@@ -284,6 +290,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             println!("📩 Message received:");
                             println!("   Topic: {topic}");
                             println!("   Payload: {text}");
+
+                            counter += 1;
+                            if counter != args.n {
+                                continue;
+                            }
+                            counter = 0;
 
                             match serde_json::from_str::<serde_json::Value>(text) {
                                 Ok(json_val) => {
