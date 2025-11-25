@@ -1,261 +1,323 @@
 use clap::Parser;
-use serde::{Deserialize, Serialize};
+use rumqttc::{AsyncClient, Event, Incoming, LastWill, MqttOptions, QoS, SubscribeFilter};
 use serde_json::json;
 use serialport::SerialPort;
-use std::io::{self, BufRead, BufReader, Write};
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::error::Error;
+use std::io::Write;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::Mutex;
+use tokio::sync::mpsc::{self, Sender};
+use tokio::{task, time};
 
 #[derive(Parser, Debug)]
-#[command(author, version, about = "Serial JSON sender: listen first, then periodically send two example JSON messages")]
+#[command(
+    author,
+    version,
+    about = "Serial JSON sender: listen first, then periodically send two example JSON messages"
+)]
 struct Args {
-    /// Serial port path (e.g. /dev/ttyUSB0 or COM3)
+    /// Communication Port
     #[arg(short, long)]
     port: String,
 
-    /// Time between sending the two messages, in milliseconds
-    #[arg(short, long, default_value_t = 3000)]
-    time: u64,
+    /// Baud rate
+    #[arg(short, long, default_value_t = 115200)]
+    baud: u32,
+
+    #[arg(long)]
+    mqtt_id: String,
+
+    #[arg(long)]
+    mqtt_host: String,
+
+    #[arg(long)]
+    mqtt_port: u16,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct AnmMessage {
-    topic: String,
-    timestamp: f64,
-    x_kalman: f64,
-    x_axe_autocalibration: bool,
-    x_measure_autocalibration: bool,
-    x_sonic_temp: f64,
-    y_kalman: f64,
-    y_axe_autocalibration: bool,
-    y_measure_autocalibration: bool,
-    y_sonic_temp: f64,
-    z_kalman: f64,
-    z_axe_autocalibration: bool,
-    z_measure_autocalibration: bool,
-    z_sonic_temp: f64,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct MassDensity {
-    #[serde(rename = "pm1.0")]
-    pm1_0: f64,
-    #[serde(rename = "pm2.5")]
-    pm2_5: f64,
-    #[serde(rename = "pm4.0")]
-    pm4_0: f64,
-    pm10: f64,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct ParticleCount {
-    #[serde(rename = "pm0.5")]
-    pm0_5: f64,
-    #[serde(rename = "pm1.0")]
-    pm1_0: f64,
-    #[serde(rename = "pm2.5")]
-    pm2_5: f64,
-    #[serde(rename = "pm4.0")]
-    pm4_0: f64,
-    pm10: f64,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct SensorData {
-    mass_density: MassDensity,
-    particle_count: ParticleCount,
-    particle_size: f64,
-    mass_density_unit: String,
-    particle_count_unit: String,
-    particle_size_unit: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct SpsMessage {
-    topic: String,
-    timestamp: u64,
-    sensor_data: SensorData,
-}
-
-fn now_secs_f64() -> f64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs_f64()
-}
-
-fn now_secs_u64() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs()
-}
-
-fn create_anm_message() -> AnmMessage {
-    AnmMessage {
-        topic: "anm".to_string(),
-        timestamp: now_secs_f64(),
-        x_kalman: 0.091875345469413672,
-        x_axe_autocalibration: true,
-        x_measure_autocalibration: false,
-        x_sonic_temp: 21.218753282865862,
-        y_kalman: 0.0583878954295078,
-        y_axe_autocalibration: true,
-        y_measure_autocalibration: false,
-        y_sonic_temp: 21.28940703494186,
-        z_kalman: -0.033768986510647636,
-        z_axe_autocalibration: true,
-        z_measure_autocalibration: false,
-        z_sonic_temp: 21.285374117923027,
+fn match_topic(topic: &str) -> TopicType {
+    match topic {
+        "/anemometer" => TopicType::Anemometer,
+        "/sps30" => TopicType::SPS30,
+        "/imu" => TopicType::Imu,
+        "/status" => TopicType::Status,
+        _ => TopicType::Unknown,
     }
 }
 
-fn create_sps_message() -> SpsMessage {
-    SpsMessage {
-        topic: "sps".to_string(),
-        timestamp: now_secs_u64(),
-        sensor_data: SensorData {
-            mass_density: MassDensity {
-                pm1_0: 7.512,
-                pm2_5: 7.944,
-                pm4_0: 7.944,
-                pm10: 7.944,
-            },
-            particle_count: ParticleCount {
-                pm0_5: 51.835,
-                pm1_0: 59.757,
-                pm2_5: 59.954,
-                pm4_0: 59.968,
-                pm10: 59.98,
-            },
-            particle_size: 0.443,
-            mass_density_unit: "ug/m3".to_string(),
-            particle_count_unit: "#/cm3".to_string(),
-            particle_size_unit: "um".to_string(),
-        },
+#[derive(PartialEq)]
+enum TopicType {
+    Anemometer,
+    SPS30,
+    Imu,
+    Status,
+    Unknown,
+}
+
+async fn mqtt_anemometer_topic_callback(json: &serde_json::Value, tx: &Sender<String>) {
+    let mut json = json.clone();
+    if let Some(obj) = json.as_object_mut() {
+        obj.insert("topic".to_string(), json!("anm"));
+        let pretty_json_string = serde_json::to_string_pretty(&json).unwrap();
+        if let Err(e) = tx.send(pretty_json_string).await {
+            eprintln!("Failed to send message: {e}");
+        }
     }
 }
 
-fn main() -> io::Result<()> {
+async fn mqtt_sps30_topic_callback(json: &serde_json::Value, tx: &Sender<String>) {
+    let mut json = json.clone();
+    if let Some(obj) = json.as_object_mut() {
+        obj.insert("topic".to_string(), json!("sps"));
+        let pretty_json_string = serde_json::to_string_pretty(&json).unwrap();
+        if let Err(e) = tx.send(pretty_json_string).await {
+            eprintln!("Failed to send message: {e}");
+        }
+    }
+}
+
+async fn mqtt_imu_topic_callback(json: &serde_json::Value, tx: &Sender<String>) {
+    let mut json = json.clone();
+    if let Some(obj) = json.as_object_mut() {
+        obj.insert("topic".to_string(), json!("imu"));
+        let pretty_json_string = serde_json::to_string_pretty(&json).unwrap();
+        if let Err(e) = tx.send(pretty_json_string).await {
+            eprintln!("Failed to send message: {e}");
+        }
+    }
+}
+
+async fn mqtt_status_topic_callback(json: &serde_json::Value, tx: &Sender<String>) {
+    let mut json = json.clone();
+    if let Some(obj) = json.as_object_mut() {
+        obj.insert("topic".to_string(), json!("status"));
+        let pretty_json_string = serde_json::to_string_pretty(&json).unwrap();
+        if let Err(e) = tx.send(pretty_json_string).await {
+            eprintln!("Failed to send message: {e}");
+        }
+    }
+}
+
+async fn mqtt_to_serial_channel_task(
+    mut rx: mpsc::Receiver<String>,
+    port: Arc<Mutex<Box<dyn SerialPort>>>,
+) -> Result<(), Box<dyn Error>> {
+    // Consumer loop: wait for messages from any worker
+    while let Some(message) = rx.recv().await {
+        println!("Writer sending: {message}");
+        {
+            let mut port_guard = port.lock().await;
+            if let Err(e) = port_guard.write_all((message.clone() + "\n").as_bytes()) {
+                eprintln!("[ERROR] Failed to write: {}", e);
+            } else {
+                if let Err(e) = port_guard.flush() {
+                    eprintln!("[ERROR] Failed to flush: {}", e);
+                }
+                println!("\n[SEND] to port\n{}", message.clone());
+            }
+        }
+    }
+
+    Ok(())
+}
+
+async fn mqtt_sender_task(mut rx: mpsc::Receiver<String>, mqtt_client: AsyncClient) {
+    while let Some(json) = rx.recv().await {
+        let topic = "/command";
+
+        if let Err(e) = mqtt_client
+            .publish(topic, QoS::AtMostOnce, false, json.clone())
+            .await
+        {
+            eprintln!("Failed to publish MQTT message: {e}");
+        } else {
+            println!("Published to MQTT: {}", json);
+        }
+    }
+}
+
+async fn serial_to_mqtt_channel_task(
+    port: Arc<Mutex<Box<dyn SerialPort>>>,
+    tx: mpsc::Sender<String>,
+) -> Result<(), Box<dyn Error>> {
+    let mut buffer = String::new();
+    loop {
+        let mut port = port.lock().await;
+        let mut tmp_buf = [0u8; 1024];
+        match port.read(&mut tmp_buf) {
+            Ok(n) if n > 0 => {
+                buffer.push_str(&String::from_utf8_lossy(&tmp_buf[..n]));
+                while let Some(pos) = buffer.find('\n') {
+                    let line = buffer.drain(..=pos).collect::<String>();
+                    let line = line.trim();
+                    if !line.is_empty() {
+                        let json = serde_json::from_str::<serde_json::Value>(line);
+
+                        match json {
+                            Ok(json_val) => {
+                                tx.send(json_val.to_string()).await.unwrap();
+                            }
+                            Err(_) => {
+                                eprintln!("ERROR Parse JSON from serial port.")
+                            }
+                        }
+                    }
+                }
+            }
+            Ok(_) => {}
+            Err(ref e) if e.kind() == std::io::ErrorKind::TimedOut => {}
+            Err(e) => eprintln!("Serial read error: {e}"),
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+}
+
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     println!("Serial JSON sender");
     println!("Port: {}", args.port);
-    println!("Send interval (ms): {}", args.time);
+    println!("Baud Rate: {}", args.baud);
+    println!("MQTT id: {}", args.mqtt_id);
+    println!("MQTT Host: {}", args.mqtt_host);
+    println!("MQTT Port: {}", args.mqtt_port);
 
-    // Open serial port
-    let port = serialport::new(&args.port, 115200)
+    let (tx, rx) = mpsc::channel::<String>(100);
+    let (tx_serial_to_mqtt, rx_serial_to_mqtt) = mpsc::channel::<String>(100);
+
+    let port: Box<dyn SerialPort> = serialport::new(&args.port, args.baud)
         .timeout(Duration::from_millis(100))
         .open()
         .expect("Failed to open serial port");
 
-    // Wrap in Arc<Mutex<>> so both threads can use it
+    let mut mqttoptions = MqttOptions::new(args.mqtt_id, args.mqtt_host, args.mqtt_port);
+    let will = LastWill::new("hello/world", "good bye", QoS::AtMostOnce, false);
+    mqttoptions
+        .set_keep_alive(Duration::from_secs(5))
+        .set_last_will(will);
+
+    let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
+
+    client
+        .subscribe_many([
+            SubscribeFilter {
+                path: "/anemometer".to_string(),
+                qos: QoS::AtLeastOnce,
+            },
+            SubscribeFilter {
+                path: "/sps30".to_string(),
+                qos: QoS::AtLeastOnce,
+            },
+            SubscribeFilter {
+                path: "/imu".to_string(),
+                qos: QoS::AtLeastOnce,
+            },
+            SubscribeFilter {
+                path: "/status".to_string(),
+                qos: QoS::AtLeastOnce,
+            },
+        ])
+        .await
+        .expect("[MQTT] Subscribing failed");
+
     let port = Arc::new(Mutex::new(port));
 
-    // START READER THREAD FIRST
-    {
-        let port_reader = Arc::clone(&port);
+    let port_write = Arc::clone(&port);
+    let port_read = Arc::clone(&port);
 
-        thread::spawn(move || {
-            // Acquire a clone of the underlying serial port for reading
-            // We lock briefly to call try_clone() which clones the OS handle.
-            let cloned = {
-                let guard = port_reader.lock().expect("port lock poisoned");
-                guard.try_clone().expect("Failed to clone serial port for reading")
-            };
+    tokio::spawn(async move {
+        if let Err(e) = mqtt_to_serial_channel_task(rx, port_write).await {
+            eprintln!("Writer task failed: {e}");
+        }
+    });
 
-            let mut reader = BufReader::new(cloned);
-            println!("[INFO] Reader thread started — listening on serial port...");
+    let tx_clone = tx_serial_to_mqtt.clone();
+    tokio::spawn(async move {
+        if let Err(e) = serial_to_mqtt_channel_task(port_read, tx_clone).await {
+            eprintln!("Writer task failed: {e}");
+        }
+    });
 
-            loop {
-                let mut line = String::new();
-                match reader.read_line(&mut line) {
-                    Ok(0) => {
-                        // No data available (EOF) — small sleep to avoid busy loop
-                        thread::sleep(Duration::from_millis(10));
-                        continue;
-                    }
-                    Ok(_) => {
-                        let trimmed = line.trim();
-                        if trimmed.is_empty() {
+    let client_clone = client.clone();
+
+    tokio::spawn(async move {
+        mqtt_sender_task(rx_serial_to_mqtt, client_clone).await;
+    });
+
+    loop {
+        let event = eventloop.poll().await;
+
+        match event {
+            Ok(Event::Incoming(incoming)) => {
+                match incoming {
+                    Incoming::Publish(publish) => {
+                        let topic = publish.topic;
+                        let payload = publish.payload;
+
+                        let topic_type = match_topic(&topic);
+
+                        if topic_type == TopicType::Unknown {
                             continue;
                         }
 
-                        // Print raw line and try to pretty-print JSON if possible
-                        println!("\n[RECV] {}", trimmed);
+                        // Convert payload to string (if UTF-8)
+                        if let Ok(text) = std::str::from_utf8(&payload) {
+                            println!("📩 Message received:");
+                            println!("   Topic: {topic}");
+                            println!("   Payload: {text}");
 
-                        match serde_json::from_str::<serde_json::Value>(trimmed) {
-                            Ok(json_val) => {
-                                println!("{}", serde_json::to_string_pretty(&json_val).unwrap());
+                            match serde_json::from_str::<serde_json::Value>(text) {
+                                Ok(json_val) => {
+                                    match topic_type {
+                                        TopicType::Anemometer => {
+                                            mqtt_anemometer_topic_callback(&json_val, &tx).await
+                                        }
+                                        TopicType::SPS30 => {
+                                            mqtt_sps30_topic_callback(&json_val, &tx).await
+                                        }
+                                        TopicType::Imu => {
+                                            mqtt_imu_topic_callback(&json_val, &tx).await
+                                        }
+                                        TopicType::Status => {
+                                            mqtt_status_topic_callback(&json_val, &tx).await
+                                        }
+                                        TopicType::Unknown => todo!(),
+                                    };
+                                }
+                                Err(_) => {
+                                    // not JSON
+                                }
                             }
-                            Err(_) => {
-                                // not JSON
-                            }
+                        } else {
+                            println!("Binary payload received on {topic}: {payload:?}");
                         }
                     }
-                    Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {
-                        // timeout — continue reading
-                        continue;
+
+                    Incoming::SubAck(ack) => {
+                        println!("Subscription ACK: {:?}", ack);
                     }
-                    Err(e) => {
-                        eprintln!("[ERROR] Reader error: {}", e);
-                        // short pause before retrying to avoid tight loop on fatal errors
-                        thread::sleep(Duration::from_millis(500));
+
+                    Incoming::PingResp => {
+                        println!("Ping response");
+                    }
+
+                    // Catch all other events
+                    other => {
+                        println!("Other incoming event: {:?}", other);
                     }
                 }
             }
-        });
-    }
 
-    // Give the reader a short moment to initialize and start listening.
-    thread::sleep(Duration::from_millis(500));
-
-    // SENDER LOOP
-    loop {
-        // Wait interval before sending next pair
-        thread::sleep(Duration::from_millis(args.time));
-
-        // prepare messages
-        let anm = create_anm_message();
-        let sps = create_sps_message();
-
-        // serialize
-        let anm_json = serde_json::to_string(&anm).expect("Failed to serialize ANM");
-        let sps_json = serde_json::to_string(&sps).expect("Failed to serialize SPS");
-
-        // Acquire lock for writing (short-lived)
-        {
-            let mut port_guard = port.lock().expect("port lock poisoned");
-
-            // write ANM with newline
-            if let Err(e) = port_guard.write_all(anm_json.as_bytes()) {
-                eprintln!("[ERROR] Failed to write ANM: {}", e);
-            } else {
-                // ensure newline and flush
-                if let Err(e) = port_guard.write_all(b"\n") {
-                    eprintln!("[ERROR] Failed to write newline after ANM: {}", e);
-                }
-                if let Err(e) = port_guard.flush() {
-                    eprintln!("[ERROR] Failed to flush after ANM: {}", e);
-                }
-                println!("\n[SEND] ANM\n{}", anm_json);
+            Ok(Event::Outgoing(out)) => {
+                println!("Outgoing event: {:?}", out);
             }
 
-            // write SPS with newline
-            if let Err(e) = port_guard.write_all(sps_json.as_bytes()) {
-                eprintln!("[ERROR] Failed to write SPS: {}", e);
-            } else {
-                if let Err(e) = port_guard.write_all(b"\n") {
-                    eprintln!("[ERROR] Failed to write newline after SPS: {}", e);
-                }
-                if let Err(e) = port_guard.flush() {
-                    eprintln!("[ERROR] Failed to flush after SPS: {}", e);
-                }
-                println!("\n[SEND] SPS\n{}", sps_json);
+            Err(e) => {
+                eprintln!("MQTT error: {e:?}");
+                break;
             }
         }
-
-        // loop continues...
     }
+    Ok(())
 }
