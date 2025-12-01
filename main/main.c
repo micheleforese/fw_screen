@@ -11,6 +11,7 @@
 #include "tusb_cdc.h"
 #include <inttypes.h>
 #include <stdio.h>
+#include <time.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -61,6 +62,8 @@ void print_esp_info(void) {
 
 void app_main(void) {
   lvgl_api_mux = xSemaphoreCreateRecursiveMutex();
+  setenv("TZ", "CET-1CEST,M3.5.0/2,M10.5.0/3", 1);
+  tzset();
 
   print_esp_info();
   lv_init();

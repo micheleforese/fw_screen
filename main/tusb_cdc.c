@@ -35,8 +35,8 @@ void tusb_cdc_rx_callback(int itf, cdcacm_event_t *event) {
   size_t rx_size = 0;
 
   /* read */
-  esp_err_t ret =
-      tinyusb_cdcacm_read(itf, rx_buf, CONFIG_TINYUSB_CDC_RX_BUFSIZE, &rx_size);
+  esp_err_t ret = tinyusb_cdcacm_read(
+      itf, rx_buf, CONFIG_TINYUSB_CDC_RX_BUFSIZE * 4, &rx_size);
   if (ret == ESP_OK) {
 
     app_message_t tx_msg = {
@@ -116,7 +116,7 @@ void tusb_cdc_rx_task(void *param) {
           continue;
         }
         on_json_received(json);
-        ESP_LOGI(TAG, "%s", cJSON_PrintUnformatted(json));
+        ESP_LOGI(TAG, "Message Received");
         cJSON_Delete(json);
       }
     }
@@ -134,5 +134,7 @@ void tusb_write(const char *msg) {
 }
 
 void tusb_json_write(const cJSON *json) {
-  tusb_write(cJSON_PrintUnformatted(json));
+  char *json_printed = cJSON_PrintUnformatted(json);
+  tusb_write(json_printed);
+  cJSON_free(json_printed);
 }

@@ -182,11 +182,8 @@ bool parse_particulate_matter_data(cJSON *root,
   }
 
   cJSON *cjson_md_pm1_0 = cJSON_GetObjectItem(cjson_mass_density, "pm1.0");
-
   cJSON *cjson_md_pm2_5 = cJSON_GetObjectItem(cjson_mass_density, "pm2.5");
-
   cJSON *cjson_md_pm4_0 = cJSON_GetObjectItem(cjson_mass_density, "pm4.0");
-
   cJSON *cjson_md_pm10 = cJSON_GetObjectItem(cjson_mass_density, "pm10");
 
   if (!cJSON_IsNumber(cjson_md_pm1_0) || !cJSON_IsNumber(cjson_md_pm2_5) ||
@@ -202,13 +199,11 @@ bool parse_particulate_matter_data(cJSON *root,
     ESP_LOGI(TAG, "ROOT->sensor_data->particle_count: NOT FOUND");
     return false;
   }
+
   cJSON *cjson_pc_pm0_5 = cJSON_GetObjectItem(cjson_particle_count, "pm0.5");
   cJSON *cjson_pc_pm1_0 = cJSON_GetObjectItem(cjson_particle_count, "pm1.0");
-
   cJSON *cjson_pc_pm2_5 = cJSON_GetObjectItem(cjson_particle_count, "pm2.5");
-
   cJSON *cjson_pc_pm4_0 = cJSON_GetObjectItem(cjson_particle_count, "pm4.0");
-
   cJSON *cjson_pc_pm10 = cJSON_GetObjectItem(cjson_particle_count, "pm10");
 
   if (!cJSON_IsNumber(cjson_pc_pm0_5) || !cJSON_IsNumber(cjson_pc_pm1_0) ||
@@ -220,13 +215,10 @@ bool parse_particulate_matter_data(cJSON *root,
 
   cJSON *cjson_particle_size =
       cJSON_GetObjectItem(cjson_sensor_data, "particle_size");
-
   cJSON *cjson_mass_density_unit =
       cJSON_GetObjectItem(cjson_sensor_data, "mass_density_unit");
-
   cJSON *cjson_particle_count_unit =
       cJSON_GetObjectItem(cjson_sensor_data, "particle_count_unit");
-
   cJSON *cjson_particle_size_unit =
       cJSON_GetObjectItem(cjson_sensor_data, "particle_size_unit");
 
@@ -278,6 +270,8 @@ bool parse_particulate_matter_data(cJSON *root,
 
   strcpy(particulateMatterData.particle_size_unit,
          cjson_particle_size_unit->valuestring);
+
+  ESP_LOGI(TAG, "SPS DATA PARSED OK.");
   return true;
 }
 
@@ -285,7 +279,7 @@ ParseReturnCode parse_data(cJSON *json, AnemometerData *anm_data,
                            ParticulateMatterData *pm_data) {
   static const char *TAG = "PARSE_DATA";
 
-  ESP_LOGI(TAG, "JSON RECEIVED. %s", cJSON_Print(json));
+  ESP_LOGI(TAG, "JSON RECEIVED.");
 
   cJSON *topic = cJSON_GetObjectItem(json, "topic");
 
