@@ -44,6 +44,9 @@ struct Args {
         help = "Serial Re-connection delay in ms (milliseconds)."
     )]
     serial_reconnection_delay_ms: u64,
+
+    #[arg(long, default_value_t = false)]
+    nodata: bool,
 }
 
 fn match_topic(topic: &str) -> TopicType {
@@ -76,6 +79,15 @@ async fn main() {
     println!("MQTT Host: {}", args.mqtt_host);
     println!("MQTT Port: {}", args.mqtt_port);
     println!("Filter Seconds: {}", args.filter_seconds);
+    println!(
+        "MQTT Reconnection delay: {} ms",
+        args.mqtt_reconnection_delay_ms
+    );
+    println!(
+        "SERIAL Reconnection delay: {} ms",
+        args.serial_reconnection_delay_ms
+    );
+    println!("Send Data to screen: {}", !args.nodata);
 
     let (mqtt_watch_channel_tx, mqtt_watch_channel_rx) = watch::channel(false);
     let (serial_watch_channel_tx, serial_watch_channel_rx) = watch::channel(false);
@@ -103,6 +115,7 @@ async fn main() {
             mqtt_watch_channel_tx_clone,
             Duration::from_secs(args.filter_seconds),
             Duration::from_millis(args.mqtt_reconnection_delay_ms),
+            args.nodata,
         )
         .await;
     });
@@ -453,6 +466,7 @@ async fn mqtt_task(
     mqtt_flag_tx: watch::Sender<bool>,
     filter_duration: Duration,
     reconnection_delay: Duration,
+    nodata: bool,
 ) {
     println!("[TASK] MQTT Combined (Connect + Listen): START");
 
@@ -541,27 +555,35 @@ async fn mqtt_task(
 
                     match serde_json::from_str::<serde_json::Value>(text) {
                         Ok(json_val) => {
-                            match topic_type {
-                                TopicType::Anemometer => {
-                                    mqtt_anemometer_topic_callback(
-                                        &json_val,
-                                        &mqtt_queue_channel_tx,
-                                    )
-                                    .await
-                                }
-                                TopicType::SPS30 => {
-                                    mqtt_sps30_topic_callback(&json_val, &mqtt_queue_channel_tx)
+                            if !nodata {
+                                match topic_type {
+                                    TopicType::Anemometer => {
+                                        mqtt_anemometer_topic_callback(
+                                            &json_val,
+                                            &mqtt_queue_channel_tx,
+                                        )
                                         .await
-                                }
-                                TopicType::Imu => {
-                                    mqtt_imu_topic_callback(&json_val, &mqtt_queue_channel_tx).await
-                                }
-                                TopicType::Status => {
-                                    mqtt_status_topic_callback(&json_val, &mqtt_queue_channel_tx)
+                                    }
+                                    TopicType::SPS30 => {
+                                        mqtt_sps30_topic_callback(&json_val, &mqtt_queue_channel_tx)
+                                            .await
+                                    }
+                                    TopicType::Imu => {
+                                        mqtt_imu_topic_callback(&json_val, &mqtt_queue_channel_tx)
+                                            .await
+                                    }
+                                    TopicType::Status => {
+                                        mqtt_status_topic_callback(
+                                            &json_val,
+                                            &mqtt_queue_channel_tx,
+                                        )
                                         .await
-                                }
-                                TopicType::Unknown => {}
-                            };
+                                    }
+                                    TopicType::Unknown => {}
+                                };
+                            } else {
+                                println!("Data not sent because 'nodata' option is true.");
+                            }
                         }
                         Err(_) => {
                             println!("[ERROR] Not a JSON Value.");
