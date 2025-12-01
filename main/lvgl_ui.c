@@ -17,7 +17,7 @@ void lvgl_update_anemometer_data(const AnemometerData *anm_data) {
     localtime_r(&timestamp, &timeinfo);
     char time_buffer[64];
     strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
-    snprintf(buffer, 64, "Time: %s", time_buffer);
+    snprintf(buffer, 64, "%s", time_buffer);
     lv_label_set_text(windLabels.timestamp, buffer);
 
     snprintf(buffer, 64, "X Vento: %.03f m/s", anm_data->x_kalman);
@@ -78,42 +78,42 @@ void lvgl_update_particulate_matter_data(const ParticulateMatterData *pm_data) {
     localtime_r(&timestamp, &timeinfo);
     char time_buffer[64];
     strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", &timeinfo);
-    snprintf(buffer, 64, "Time: %s", time_buffer);
+    snprintf(buffer, 64, "%s", time_buffer);
     lv_label_set_text(particulateMatterLabels.timestamp, buffer);
 
-    snprintf(buffer, 64, "Mass pm1.0: %.03f %s", pm_data->mass_density_pm_1_0,
+    snprintf(buffer, 64, "Mass PM1.0 %.02f %s", pm_data->mass_density_pm_1_0,
              pm_data->mass_density_unit);
     lv_label_set_text(particulateMatterLabels.mass_density_pm_1_0, buffer);
 
-    snprintf(buffer, 64, "Mass pm2.5: %.03f %s", pm_data->mass_density_pm_2_5,
+    snprintf(buffer, 64, "Mass PM2.5 %.02f %s", pm_data->mass_density_pm_2_5,
              pm_data->mass_density_unit);
     lv_label_set_text(particulateMatterLabels.mass_density_pm_2_5, buffer);
 
-    snprintf(buffer, 64, "Mass pm4.0: %.03f %s", pm_data->mass_density_pm_4_0,
+    snprintf(buffer, 64, "Mass PM4.0 %.02f %s", pm_data->mass_density_pm_4_0,
              pm_data->mass_density_unit);
     lv_label_set_text(particulateMatterLabels.mass_density_pm_4_0, buffer);
 
-    snprintf(buffer, 64, "Mass pm10: %.03f %s", pm_data->mass_density_pm_10,
+    snprintf(buffer, 64, "Mass PM10 %.02f %s", pm_data->mass_density_pm_10,
              pm_data->mass_density_unit);
     lv_label_set_text(particulateMatterLabels.mass_density_pm_10, buffer);
 
-    snprintf(buffer, 64, "Count pm0.5: %.03f %s", pm_data->particle_count_0_5,
+    snprintf(buffer, 64, "PM0.5 %.02f %s", pm_data->particle_count_0_5,
              pm_data->particle_count_unit);
     lv_label_set_text(particulateMatterLabels.particle_count_0_5, buffer);
 
-    snprintf(buffer, 64, "Count pm1.0: %.03f %s", pm_data->particle_count_1_0,
+    snprintf(buffer, 64, "PM1.0 %.02f %s", pm_data->particle_count_1_0,
              pm_data->particle_count_unit);
     lv_label_set_text(particulateMatterLabels.particle_count_1_0, buffer);
 
-    snprintf(buffer, 64, "Count pm2.5: %.03f %s", pm_data->particle_count_2_5,
+    snprintf(buffer, 64, "PM2.5 %.02f %s", pm_data->particle_count_2_5,
              pm_data->particle_count_unit);
     lv_label_set_text(particulateMatterLabels.particle_count_2_5, buffer);
 
-    snprintf(buffer, 64, "Count pm4.0: %.03f %s", pm_data->particle_count_4_0,
+    snprintf(buffer, 64, "PM4.0 %.02f %s", pm_data->particle_count_4_0,
              pm_data->particle_count_unit);
     lv_label_set_text(particulateMatterLabels.particle_count_4_0, buffer);
 
-    snprintf(buffer, 64, "Count pm10: %.03f %s", pm_data->particle_count_10,
+    snprintf(buffer, 64, "PM10 %.02f %s", pm_data->particle_count_10,
              pm_data->particle_count_unit);
     lv_label_set_text(particulateMatterLabels.particle_count_10, buffer);
 
@@ -195,9 +195,9 @@ void lvgl_anemometer_ui_init(lv_obj_t *parent) {
   lv_obj_t *time_container = lv_obj_create(tab1);
   lv_obj_set_width(time_container, lv_pct(100));      // Full width
   lv_obj_set_height(time_container, LV_SIZE_CONTENT); // Height fits content
-  lv_obj_set_flex_flow(time_container, LV_FLEX_FLOW_ROW_WRAP);
-  lv_obj_set_flex_align(time_container, LV_FLEX_ALIGN_START,
-                        LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
+  lv_obj_set_flex_flow(time_container, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(time_container, LV_FLEX_ALIGN_CENTER,
+                        LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
   lv_obj_set_style_pad_all(time_container, 8, 0); // Internal padding
   lv_obj_set_style_pad_column(time_container, 10, 0);
   lv_obj_set_style_pad_row(time_container, 5,
@@ -208,12 +208,13 @@ void lvgl_anemometer_ui_init(lv_obj_t *parent) {
   lv_obj_t *x_container = lv_obj_create(tab1);
   lv_obj_set_width(x_container, lv_pct(100));      // Full width
   lv_obj_set_height(x_container, LV_SIZE_CONTENT); // Height fits content
-  lv_obj_set_flex_flow(x_container, LV_FLEX_FLOW_ROW_WRAP);
-  lv_obj_set_flex_align(x_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+  lv_obj_set_flex_flow(x_container, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(x_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,
                         LV_FLEX_ALIGN_START);
   lv_obj_set_style_pad_all(x_container, 8, 0); // Internal padding
   lv_obj_set_style_pad_column(x_container, 10, 0);
   lv_obj_set_style_pad_row(x_container, 5, 0); // Space between rows if wrapped
+  lv_obj_set_scroll_dir(x_container, LV_DIR_NONE);
 
   windLabels.x_kalman = lv_label_create(x_container);
   windLabels.autocalibrazione_asse_x = lv_label_create(x_container);
@@ -223,12 +224,13 @@ void lvgl_anemometer_ui_init(lv_obj_t *parent) {
   lv_obj_t *y_container = lv_obj_create(tab1);
   lv_obj_set_width(y_container, lv_pct(100));      // Full width
   lv_obj_set_height(y_container, LV_SIZE_CONTENT); // Height fits content
-  lv_obj_set_flex_flow(y_container, LV_FLEX_FLOW_ROW_WRAP);
-  lv_obj_set_flex_align(y_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+  lv_obj_set_flex_flow(y_container, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(y_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,
                         LV_FLEX_ALIGN_START);
   lv_obj_set_style_pad_all(y_container, 8, 0); // Internal padding
   lv_obj_set_style_pad_column(y_container, 10, 0);
   lv_obj_set_style_pad_row(y_container, 5, 0); // Space between rows if wrapped
+  lv_obj_set_scroll_dir(y_container, LV_DIR_NONE);
 
   windLabels.y_kalman = lv_label_create(y_container);
   windLabels.autocalibrazione_asse_y = lv_label_create(y_container);
@@ -238,12 +240,13 @@ void lvgl_anemometer_ui_init(lv_obj_t *parent) {
   lv_obj_t *z_container = lv_obj_create(tab1);
   lv_obj_set_width(z_container, lv_pct(100));      // Full width
   lv_obj_set_height(z_container, LV_SIZE_CONTENT); // Height fits content
-  lv_obj_set_flex_flow(z_container, LV_FLEX_FLOW_ROW_WRAP);
-  lv_obj_set_flex_align(z_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+  lv_obj_set_flex_flow(z_container, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(z_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,
                         LV_FLEX_ALIGN_START);
   lv_obj_set_style_pad_all(z_container, 8, 0); // Internal padding
   lv_obj_set_style_pad_column(z_container, 10, 0);
   lv_obj_set_style_pad_row(z_container, 5, 0); // Space between rows if wrapped
+  lv_obj_set_scroll_dir(z_container, LV_DIR_NONE);
 
   windLabels.z_kalman = lv_label_create(z_container);
   windLabels.autocalibrazione_asse_z = lv_label_create(z_container);
@@ -264,26 +267,28 @@ void lvgl_anemometer_ui_init(lv_obj_t *parent) {
   lv_obj_t *tstamp_container = lv_obj_create(tab2);
   lv_obj_set_width(tstamp_container, lv_pct(100));      // Full width
   lv_obj_set_height(tstamp_container, LV_SIZE_CONTENT); // Height fits content
-  lv_obj_set_flex_flow(tstamp_container, LV_FLEX_FLOW_ROW_WRAP);
-  lv_obj_set_flex_align(tstamp_container, LV_FLEX_ALIGN_START,
-                        LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
+  lv_obj_set_flex_flow(tstamp_container, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(tstamp_container, LV_FLEX_ALIGN_CENTER,
+                        LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
   lv_obj_set_style_pad_all(tstamp_container, 8, 0); // Internal padding
   lv_obj_set_style_pad_column(tstamp_container, 10, 0);
   lv_obj_set_style_pad_row(tstamp_container, 5,
                            0); // Space between rows if wrapped
+  lv_obj_set_scroll_dir(tstamp_container, LV_DIR_NONE);
 
   particulateMatterLabels.timestamp = lv_label_create(tstamp_container);
 
   lv_obj_t *md_container = lv_obj_create(tab2);
   lv_obj_set_width(md_container, lv_pct(100));      // Full width
   lv_obj_set_height(md_container, LV_SIZE_CONTENT); // Height fits content
-  lv_obj_set_flex_flow(md_container, LV_FLEX_FLOW_ROW_WRAP);
-  lv_obj_set_flex_align(md_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+  lv_obj_set_flex_flow(md_container, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(md_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,
                         LV_FLEX_ALIGN_START);
   lv_obj_set_style_pad_all(md_container, 8, 0); // Internal padding
   lv_obj_set_style_pad_column(md_container, 10, 0);
   lv_obj_set_style_pad_row(md_container, 5,
                            0); // Space between rows if wrapped
+  lv_obj_set_scroll_dir(md_container, LV_DIR_NONE);
 
   particulateMatterLabels.mass_density_pm_1_0 = lv_label_create(md_container);
   particulateMatterLabels.mass_density_pm_2_5 = lv_label_create(md_container);
@@ -293,13 +298,14 @@ void lvgl_anemometer_ui_init(lv_obj_t *parent) {
   lv_obj_t *pc_container = lv_obj_create(tab2);
   lv_obj_set_width(pc_container, lv_pct(100));      // Full width
   lv_obj_set_height(pc_container, LV_SIZE_CONTENT); // Height fits content
-  lv_obj_set_flex_flow(pc_container, LV_FLEX_FLOW_ROW_WRAP);
-  lv_obj_set_flex_align(pc_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+  lv_obj_set_flex_flow(pc_container, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(pc_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,
                         LV_FLEX_ALIGN_START);
   lv_obj_set_style_pad_all(pc_container, 8, 0); // Internal padding
   lv_obj_set_style_pad_column(pc_container, 10, 0);
   lv_obj_set_style_pad_row(pc_container, 5,
                            0); // Space between rows if wrapped
+  lv_obj_set_scroll_dir(pc_container, LV_DIR_NONE);
 
   particulateMatterLabels.particle_count_0_5 = lv_label_create(pc_container);
   particulateMatterLabels.particle_count_1_0 = lv_label_create(pc_container);
