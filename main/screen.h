@@ -9,6 +9,7 @@
 
 #define PIN_NUM_LCD_SCLK 39
 #define PIN_NUM_LCD_MOSI 38
+#define PIN_NUM_LCD_MISO 40
 
 #define SPI_HOST SPI2_HOST
 

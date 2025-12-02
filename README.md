@@ -13,7 +13,7 @@
 
     ```shell
     source $HOME/esp/v5.5.1/esp-idf/export.sh
-    idf.py make flash
+    idf.py build flash
     ```
 
 3. Press the Reset Button

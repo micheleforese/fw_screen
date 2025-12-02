@@ -26,10 +26,10 @@ void display_init(void) {
   ESP_LOGI(TAG, "SPI BUS init");
   spi_bus_config_t buscfg = {.sclk_io_num = PIN_NUM_LCD_SCLK,
                              .mosi_io_num = PIN_NUM_LCD_MOSI,
-                             .miso_io_num = -1,
+                             .miso_io_num = PIN_NUM_LCD_MISO,
                              .quadwp_io_num = -1,
                              .quadhd_io_num = -1,
-                             .max_transfer_sz = 320 * 240 * 2 + 8};
+                             .max_transfer_sz = 4000};
   ESP_ERROR_CHECK(spi_bus_initialize(SPI_HOST, &buscfg, SPI_DMA_CH_AUTO));
 
   ESP_LOGI(TAG, "Install panel IO");
@@ -50,7 +50,7 @@ void display_init(void) {
 
   esp_lcd_panel_dev_config_t panel_config = {
       .reset_gpio_num = PIN_NUM_LCD_RST,
-      .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_BGR,
+      .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
       .bits_per_pixel = 16,
   };
   ESP_LOGI(TAG, "Install ST7789 panel driver");
