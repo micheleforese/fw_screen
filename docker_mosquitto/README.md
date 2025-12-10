@@ -4,7 +4,17 @@
 2. Type:
 
     ```shell
-    docker run -it -p 1883:1883 -v "$(pwd)/config:/mosquitto/config" eclipse-mosquitto:2.0.22
-    docker build -t my-mosquitto .
-    docker run -it -p 1883:1883 my-mosquitto
+    docker compose up
+    ```
+
+    > For Detached mode
+
+    ```shell
+    docker compose up -d
+    ```
+
+3. To Close it
+
+    ```shell
+    docker compose down
     ```
