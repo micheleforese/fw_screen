@@ -47,6 +47,12 @@ struct Args {
 
     #[arg(long, default_value_t = false)]
     nodata: bool,
+
+    #[arg(long, default_value_t = false)]
+    nopingpong: bool,
+
+    #[arg(long, default_value_t = false)]
+    swap_mean: bool,
 }
 
 fn match_topic(topic: &str) -> TopicType {
@@ -87,6 +93,8 @@ async fn main() {
         "SERIAL Reconnection delay: {} ms",
         args.serial_reconnection_delay_ms
     );
+    println!("FLAG nopingpong: {}", args.nopingpong);
+    println!("FLAG swap_mean: {}", args.swap_mean);
     println!("Send Data to screen: {}", !args.nodata);
 
     let (mqtt_watch_channel_tx, mqtt_watch_channel_rx) = watch::channel(false);
@@ -116,6 +124,8 @@ async fn main() {
             Duration::from_secs(args.filter_seconds),
             Duration::from_millis(args.mqtt_reconnection_delay_ms),
             args.nodata,
+            args.nopingpong,
+            args.swap_mean,
         )
         .await;
     });
@@ -189,11 +199,26 @@ async fn main() {
     );
 }
 
-async fn mqtt_anemometer_topic_callback(json: &serde_json::Value, tx: &Sender<String>) {
+async fn mqtt_anemometer_topic_callback(
+    json: &serde_json::Value,
+    tx: &Sender<String>,
+    swap_mean: bool,
+) {
     let mut json = json.clone();
     if let Some(obj) = json.as_object_mut() {
         obj.insert("topic".to_string(), json!("anm"));
-        let pretty_json_string = serde_json::to_string_pretty(&json).unwrap();
+        if swap_mean {
+            if let Some(x_vout) = obj.get("x_v_mean") {
+                obj["x_vout"] = json!(x_vout);
+            }
+            if let Some(y_vout) = obj.get("y_v_mean") {
+                obj["y_vout"] = json!(y_vout);
+            }
+            if let Some(z_vout) = obj.get("z_v_mean") {
+                obj["z_vout"] = json!(z_vout);
+            }
+        }
+        let pretty_json_string = serde_json::to_string(&json).unwrap();
         if let Err(e) = tx.send(pretty_json_string).await {
             eprintln!("Failed to send message: {e}");
         }
@@ -204,7 +229,7 @@ async fn mqtt_sps30_topic_callback(json: &serde_json::Value, tx: &Sender<String>
     let mut json = json.clone();
     if let Some(obj) = json.as_object_mut() {
         obj.insert("topic".to_string(), json!("sps"));
-        let pretty_json_string = serde_json::to_string_pretty(&json).unwrap();
+        let pretty_json_string = serde_json::to_string(&json).unwrap();
         if let Err(e) = tx.send(pretty_json_string).await {
             eprintln!("Failed to send message: {e}");
         }
@@ -215,21 +240,29 @@ async fn mqtt_imu_topic_callback(json: &serde_json::Value, tx: &Sender<String>) 
     let mut json = json.clone();
     if let Some(obj) = json.as_object_mut() {
         obj.insert("topic".to_string(), json!("imu"));
-        let pretty_json_string = serde_json::to_string_pretty(&json).unwrap();
+        let pretty_json_string = serde_json::to_string(&json).unwrap();
         if let Err(e) = tx.send(pretty_json_string).await {
             eprintln!("Failed to send message: {e}");
         }
     }
 }
 
-async fn mqtt_status_topic_callback(json: &serde_json::Value, tx: &Sender<String>) {
-    let mut json = json.clone();
-    if let Some(obj) = json.as_object_mut() {
-        obj.insert("topic".to_string(), json!("status"));
-        let pretty_json_string = serde_json::to_string_pretty(&json).unwrap();
+async fn mqtt_status_topic_callback(text: &str, tx: &Sender<String>, nopingpong: bool) {
+    if nopingpong {
+        if text == "ping" || text == "pong" {
+            return;
+        }
+    }
+    let json_status_msg: serde_json::Value = serde_json::json!({
+        "topic": "status",
+        "msg": text,
+    });
+    if let Ok(pretty_json_string) = serde_json::to_string(&json_status_msg) {
         if let Err(e) = tx.send(pretty_json_string).await {
             eprintln!("Failed to send message: {e}");
         }
+    } else {
+        eprintln!("Failed to stringify the json: {json_status_msg}");
     }
 }
 
@@ -467,6 +500,8 @@ async fn mqtt_task(
     filter_duration: Duration,
     reconnection_delay: Duration,
     nodata: bool,
+    nopingpong: bool,
+    swap_mean: bool,
 ) {
     println!("[TASK] MQTT Combined (Connect + Listen): START");
 
@@ -536,9 +571,7 @@ async fn mqtt_task(
 
                 if topic_type == TopicType::Unknown {
                     continue;
-                }
-
-                if topic_type == TopicType::Anemometer {
+                } else if topic_type == TopicType::Anemometer {
                     let current_time = Instant::now();
                     if !has_elapsed_between(last_msg_anm_timestamp, current_time, filter_duration) {
                         continue;
@@ -553,6 +586,10 @@ async fn mqtt_task(
                     println!("   Topic: {topic}");
                     println!("   Payload: {text}");
 
+                    if topic_type == TopicType::Status {
+                        mqtt_status_topic_callback(text, &mqtt_queue_channel_tx, nopingpong).await
+                    }
+
                     match serde_json::from_str::<serde_json::Value>(text) {
                         Ok(json_val) => {
                             if !nodata {
@@ -561,6 +598,7 @@ async fn mqtt_task(
                                         mqtt_anemometer_topic_callback(
                                             &json_val,
                                             &mqtt_queue_channel_tx,
+                                            swap_mean,
                                         )
                                         .await
                                     }
@@ -572,13 +610,7 @@ async fn mqtt_task(
                                         mqtt_imu_topic_callback(&json_val, &mqtt_queue_channel_tx)
                                             .await
                                     }
-                                    TopicType::Status => {
-                                        mqtt_status_topic_callback(
-                                            &json_val,
-                                            &mqtt_queue_channel_tx,
-                                        )
-                                        .await
-                                    }
+                                    TopicType::Status => {}
                                     TopicType::Unknown => {}
                                 };
                             } else {
