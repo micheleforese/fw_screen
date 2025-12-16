@@ -77,106 +77,125 @@ void imu_data_default(ImuData *imu_data) {
 }
 
 bool parse_anemometer_data(cJSON *root, AnemometerData *anm_data) {
+
+  // ----------------------------------------
+  // Timestamp
+  // ----------------------------------------
   cJSON *cjson_timestamp = cJSON_GetObjectItem(root, "timestamp");
+
+  if (cJSON_IsNumber(cjson_timestamp)) {
+    anm_data->timestamp = (double)cjson_timestamp->valuedouble;
+  } else {
+    ESP_LOGI(TAG, "ROOT->timestamp: NOT FOUND");
+  }
+
+  // ----------------------------------------
+  // v_out
+  // ----------------------------------------
   cJSON *cjson_x_vout = cJSON_GetObjectItem(root, "x_vout");
+  if (cJSON_IsNumber(cjson_x_vout)) {
+    anm_data->x_vout = (double)cjson_x_vout->valuedouble;
+  } else {
+    ESP_LOGI(TAG, "ROOT->x_vout: NOT FOUND");
+  }
+
   cJSON *cjson_y_vout = cJSON_GetObjectItem(root, "y_vout");
+  if (cJSON_IsNumber(cjson_y_vout)) {
+    anm_data->y_vout = (double)cjson_y_vout->valuedouble;
+  } else {
+    ESP_LOGI(TAG, "ROOT->y_vout: NOT FOUND");
+  }
+
   cJSON *cjson_z_vout = cJSON_GetObjectItem(root, "z_vout");
+  if (cJSON_IsNumber(cjson_z_vout)) {
+    anm_data->z_vout = (double)cjson_z_vout->valuedouble;
+  } else {
+    ESP_LOGI(TAG, "ROOT->z_vout: NOT FOUND");
+  }
+
+  // ----------------------------------------
+  // Axis Autocalibration
+  // ----------------------------------------
   cJSON *cjson_autocalibrazione_asse_x =
       cJSON_GetObjectItem(root, "autocalibrazione_asse_x");
+  if (cJSON_IsBool(cjson_autocalibrazione_asse_x)) {
+    anm_data->autocalibrazione_asse_x =
+        cJSON_IsTrue(cjson_autocalibrazione_asse_x);
+  } else {
+    ESP_LOGI(TAG, "ROOT->autocalibrazione_asse_x: NOT FOUND");
+  }
+
   cJSON *cjson_autocalibrazione_asse_y =
       cJSON_GetObjectItem(root, "autocalibrazione_asse_y");
+  if (cJSON_IsBool(cjson_autocalibrazione_asse_y)) {
+    anm_data->autocalibrazione_asse_y =
+        cJSON_IsTrue(cjson_autocalibrazione_asse_y);
+  } else {
+    ESP_LOGI(TAG, "ROOT->autocalibrazione_asse_y: NOT FOUND");
+  }
+
   cJSON *cjson_autocalibrazione_asse_z =
       cJSON_GetObjectItem(root, "autocalibrazione_asse_z");
+  if (cJSON_IsBool(cjson_autocalibrazione_asse_z)) {
+    anm_data->autocalibrazione_asse_z =
+        cJSON_IsTrue(cjson_autocalibrazione_asse_z);
+  } else {
+    ESP_LOGI(TAG, "ROOT->autocalibrazione_asse_z: NOT FOUND");
+  }
+
+  // ----------------------------------------
+  // Measure Autocalibration
+  // ----------------------------------------
   cJSON *cjson_autocalibrazione_misura_x =
       cJSON_GetObjectItem(root, "autocalibrazione_misura_x");
+  if (cJSON_IsBool(cjson_autocalibrazione_misura_x)) {
+    anm_data->autocalibrazione_misura_x =
+        cJSON_IsTrue(cjson_autocalibrazione_misura_x);
+  } else {
+    ESP_LOGI(TAG, "ROOT->autocalibrazione_misura_x: NOT FOUND");
+  }
+
   cJSON *cjson_autocalibrazione_misura_y =
       cJSON_GetObjectItem(root, "autocalibrazione_misura_y");
+  if (cJSON_IsBool(cjson_autocalibrazione_misura_y)) {
+    anm_data->autocalibrazione_misura_y =
+        cJSON_IsTrue(cjson_autocalibrazione_misura_y);
+  } else {
+    ESP_LOGI(TAG, "ROOT->autocalibrazione_misura_y: NOT FOUND");
+  }
+
   cJSON *cjson_autocalibrazione_misura_z =
       cJSON_GetObjectItem(root, "autocalibrazione_misura_z");
-
-  cJSON *cjson_temp_sonica_x = cJSON_GetObjectItem(root, "temp_sonica_x");
-  cJSON *cjson_temp_sonica_y = cJSON_GetObjectItem(root, "temp_sonica_y");
-  cJSON *cjson_temp_sonica_z = cJSON_GetObjectItem(root, "temp_sonica_z");
-
-  if (!cJSON_IsNumber(cjson_timestamp)) {
-    ESP_LOGI(TAG, "ROOT->timestamp: NOT FOUND");
-    return false;
-  }
-
-  if (!cJSON_IsNumber(cjson_x_vout)) {
-    ESP_LOGI(TAG, "ROOT->x_vout: NOT FOUND");
-    return false;
-  }
-  if (!cJSON_IsNumber(cjson_y_vout)) {
-    ESP_LOGI(TAG, "ROOT->y_vout: NOT FOUND");
-    return false;
-  }
-  if (!cJSON_IsNumber(cjson_z_vout)) {
-    ESP_LOGI(TAG, "ROOT->z_vout: NOT FOUND");
-    return false;
-  }
-
-  if (!cJSON_IsBool(cjson_autocalibrazione_asse_x)) {
-    ESP_LOGI(TAG, "ROOT->autocalibrazione_asse_x: NOT FOUND");
-    return false;
-  }
-  if (!cJSON_IsBool(cjson_autocalibrazione_asse_y)) {
-    ESP_LOGI(TAG, "ROOT->autocalibrazione_asse_y: NOT FOUND");
-    return false;
-  }
-  if (!cJSON_IsBool(cjson_autocalibrazione_asse_z)) {
-    ESP_LOGI(TAG, "ROOT->autocalibrazione_asse_z: NOT FOUND");
-    return false;
-  }
-
-  if (!cJSON_IsBool(cjson_autocalibrazione_misura_x)) {
-    ESP_LOGI(TAG, "ROOT->autocalibrazione_misura_x: NOT FOUND");
-    return false;
-  }
-  if (!cJSON_IsBool(cjson_autocalibrazione_misura_y)) {
-    ESP_LOGI(TAG, "ROOT->autocalibrazione_misura_y: NOT FOUND");
-    return false;
-  }
-  if (!cJSON_IsBool(cjson_autocalibrazione_misura_z)) {
+  if (cJSON_IsBool(cjson_autocalibrazione_misura_z)) {
+    anm_data->autocalibrazione_misura_z =
+        cJSON_IsTrue(cjson_autocalibrazione_misura_z);
+  } else {
     ESP_LOGI(TAG, "ROOT->autocalibrazione_misura_z: NOT FOUND");
-    return false;
   }
 
-  if (!cJSON_IsNumber(cjson_temp_sonica_x)) {
+  // ----------------------------------------
+  // Sonic Temperature
+  // ----------------------------------------
+  cJSON *cjson_temp_sonica_x = cJSON_GetObjectItem(root, "temp_sonica_x");
+  if (cJSON_IsNumber(cjson_temp_sonica_x)) {
+    anm_data->temp_sonica_x = (double)cjson_temp_sonica_x->valuedouble;
+  } else {
     ESP_LOGI(TAG, "ROOT->temp_sonica_x: NOT FOUND");
-    return false;
   }
-  if (!cJSON_IsNumber(cjson_temp_sonica_y)) {
+
+  cJSON *cjson_temp_sonica_y = cJSON_GetObjectItem(root, "temp_sonica_y");
+  if (cJSON_IsNumber(cjson_temp_sonica_y)) {
+    anm_data->temp_sonica_y = (double)cjson_temp_sonica_y->valuedouble;
+  } else {
     ESP_LOGI(TAG, "ROOT->temp_sonica_y: NOT FOUND");
-    return false;
   }
-  if (!cJSON_IsNumber(cjson_temp_sonica_z)) {
+
+  cJSON *cjson_temp_sonica_z = cJSON_GetObjectItem(root, "temp_sonica_z");
+  if (cJSON_IsNumber(cjson_temp_sonica_z)) {
+    anm_data->temp_sonica_z = (double)cjson_temp_sonica_z->valuedouble;
+  } else {
     ESP_LOGI(TAG, "ROOT->temp_sonica_z: NOT FOUND");
-    return false;
   }
-
-  anm_data->timestamp = (double)cjson_timestamp->valuedouble;
-  anm_data->x_vout = (double)cjson_x_vout->valuedouble;
-  anm_data->y_vout = (double)cjson_y_vout->valuedouble;
-  anm_data->z_vout = (double)cjson_z_vout->valuedouble;
-
-  anm_data->autocalibrazione_asse_x =
-      cJSON_IsTrue(cjson_autocalibrazione_asse_x);
-  anm_data->autocalibrazione_asse_y =
-      cJSON_IsTrue(cjson_autocalibrazione_asse_y);
-  anm_data->autocalibrazione_asse_z =
-      cJSON_IsTrue(cjson_autocalibrazione_asse_z);
-
-  anm_data->autocalibrazione_misura_x =
-      cJSON_IsTrue(cjson_autocalibrazione_misura_x);
-  anm_data->autocalibrazione_misura_y =
-      cJSON_IsTrue(cjson_autocalibrazione_misura_y);
-  anm_data->autocalibrazione_misura_z =
-      cJSON_IsTrue(cjson_autocalibrazione_misura_z);
-
-  anm_data->temp_sonica_x = (double)cjson_temp_sonica_x->valuedouble;
-  anm_data->temp_sonica_y = (double)cjson_temp_sonica_y->valuedouble;
-  anm_data->temp_sonica_z = (double)cjson_temp_sonica_z->valuedouble;
 
   ESP_LOGI(TAG, "ANEMOMETER DATA PARSED OK.");
   return true;
@@ -185,117 +204,195 @@ bool parse_anemometer_data(cJSON *root, AnemometerData *anm_data) {
 bool parse_particulate_matter_data(cJSON *root,
                                    ParticulateMatterData *sps_data) {
 
+  // ----------------------------------------
+  // Timestamp
+  // ----------------------------------------
   cJSON *cjson_timestamp = cJSON_GetObjectItem(root, "timestamp");
 
-  if (!cJSON_IsNumber(cjson_timestamp)) {
-    ESP_LOGI(TAG, "ROOT->timestamp: NOT FOUND");
-    return false;
+  if (cJSON_IsNumber(cjson_timestamp)) {
+    particulateMatterData.timestamp = (double)cjson_timestamp->valuedouble;
+  } else {
+    ESP_LOGW(TAG, "ROOT->timestamp: NOT FOUND");
   }
 
+  // ----------------------------------------
+  // sensor_data
+  // ----------------------------------------
   cJSON *cjson_sensor_data = cJSON_GetObjectItem(root, "sensor_data");
 
   if (!cJSON_IsObject(cjson_sensor_data)) {
-    ESP_LOGI(TAG, "ROOT->timestamp: NOT FOUND");
-    return false;
+    ESP_LOGI(TAG, "ROOT->sensor_data: NOT FOUND");
+  } else {
+    // ----------------------------------------
+    // sensor_data -> mass_density
+    // ----------------------------------------
+    cJSON *cjson_mass_density =
+        cJSON_GetObjectItem(cjson_sensor_data, "mass_density");
+
+    if (!cJSON_IsObject(cjson_mass_density)) {
+      ESP_LOGI(TAG, "ROOT->sensor_data->mass_density: NOT FOUND");
+    } else {
+      // ----------------------------------------
+      // sensor_data -> mass_density -> pm 1.0
+      // ----------------------------------------
+      cJSON *cjson_md_pm1_0 = cJSON_GetObjectItem(cjson_mass_density, "pm1.0");
+      if (cJSON_IsNumber(cjson_md_pm1_0)) {
+        particulateMatterData.mass_density_pm_1_0 =
+            (double)cjson_md_pm1_0->valuedouble;
+      } else {
+        ESP_LOGI(TAG, "ROOT->sensor_data->mass_density->pm1.0: NOT FOUND");
+      }
+
+      // ----------------------------------------
+      // sensor_data -> mass_density -> pm 2.5
+      // ----------------------------------------
+      cJSON *cjson_md_pm2_5 = cJSON_GetObjectItem(cjson_mass_density, "pm2.5");
+      if (cJSON_IsNumber(cjson_md_pm2_5)) {
+        particulateMatterData.mass_density_pm_2_5 =
+            (double)cjson_md_pm2_5->valuedouble;
+      } else {
+        ESP_LOGI(TAG, "ROOT->sensor_data->mass_density->pm2.5: NOT FOUND");
+      }
+
+      // ----------------------------------------
+      // sensor_data -> mass_density -> pm 4.0
+      // ----------------------------------------
+      cJSON *cjson_md_pm4_0 = cJSON_GetObjectItem(cjson_mass_density, "pm4.0");
+      if (cJSON_IsNumber(cjson_md_pm4_0)) {
+        particulateMatterData.mass_density_pm_4_0 =
+            (double)cjson_md_pm4_0->valuedouble;
+      } else {
+        ESP_LOGI(TAG, "ROOT->sensor_data->mass_density->pm4.0: NOT FOUND");
+      }
+
+      // ----------------------------------------
+      // sensor_data -> mass_density -> pm 10
+      // ----------------------------------------
+      cJSON *cjson_md_pm10 = cJSON_GetObjectItem(cjson_mass_density, "pm10");
+      if (cJSON_IsNumber(cjson_md_pm10)) {
+        particulateMatterData.mass_density_pm_10 =
+            (double)cjson_md_pm10->valuedouble;
+      } else {
+        ESP_LOGI(TAG, "ROOT->sensor_data->mass_density->pm10: NOT FOUND");
+      }
+    }
+
+    // ----------------------------------------
+    // sensor_data -> particle_count
+    // ----------------------------------------
+    cJSON *cjson_particle_count =
+        cJSON_GetObjectItem(cjson_sensor_data, "particle_count");
+
+    if (!cJSON_IsObject(cjson_particle_count)) {
+      ESP_LOGI(TAG, "ROOT->sensor_data->particle_count: NOT FOUND");
+    } else {
+      // ----------------------------------------
+      // sensor_data -> particle_count -> pm0.5
+      // ----------------------------------------
+      cJSON *cjson_pc_pm0_5 =
+          cJSON_GetObjectItem(cjson_particle_count, "pm0.5");
+      if (cJSON_IsNumber(cjson_pc_pm0_5)) {
+        particulateMatterData.particle_count_0_5 =
+            (double)cjson_pc_pm0_5->valuedouble;
+      } else {
+        ESP_LOGI(TAG, "ROOT->sensor_data->particle_count->pm0.5: NOT FOUND");
+      }
+
+      // ----------------------------------------
+      // sensor_data -> particle_count -> pm1.0
+      // ----------------------------------------
+      cJSON *cjson_pc_pm1_0 =
+          cJSON_GetObjectItem(cjson_particle_count, "pm1.0");
+      if (cJSON_IsNumber(cjson_pc_pm1_0)) {
+        particulateMatterData.particle_count_1_0 =
+            (double)cjson_pc_pm1_0->valuedouble;
+      } else {
+        ESP_LOGI(TAG, "ROOT->sensor_data->particle_count->pm1.0: NOT FOUND");
+      }
+
+      // ----------------------------------------
+      // sensor_data -> particle_count -> pm2.5
+      // ----------------------------------------
+      cJSON *cjson_pc_pm2_5 =
+          cJSON_GetObjectItem(cjson_particle_count, "pm2.5");
+      if (cJSON_IsNumber(cjson_pc_pm2_5)) {
+        particulateMatterData.particle_count_2_5 =
+            (double)cjson_pc_pm2_5->valuedouble;
+      } else {
+        ESP_LOGI(TAG, "ROOT->sensor_data->particle_count->pm2.5: NOT FOUND");
+      }
+
+      // ----------------------------------------
+      // sensor_data -> particle_count -> pm4.0
+      // ----------------------------------------
+      cJSON *cjson_pc_pm4_0 =
+          cJSON_GetObjectItem(cjson_particle_count, "pm4.0");
+      if (cJSON_IsNumber(cjson_pc_pm4_0)) {
+        particulateMatterData.particle_count_4_0 =
+            (double)cjson_pc_pm4_0->valuedouble;
+      } else {
+        ESP_LOGI(TAG, "ROOT->sensor_data->particle_count->pm4.0: NOT FOUND");
+      }
+
+      // ----------------------------------------
+      // sensor_data -> particle_count -> pm10
+      // ----------------------------------------
+      cJSON *cjson_pc_pm10 = cJSON_GetObjectItem(cjson_particle_count, "pm10");
+      if (cJSON_IsNumber(cjson_pc_pm10)) {
+        particulateMatterData.particle_count_10 =
+            (double)cjson_pc_pm10->valuedouble;
+      } else {
+        ESP_LOGI(TAG, "ROOT->sensor_data->particle_count->pm10: NOT FOUND");
+      }
+    }
+
+    // ----------------------------------------
+    // sensor_data -> particle_size
+    // ----------------------------------------
+    cJSON *cjson_particle_size =
+        cJSON_GetObjectItem(cjson_sensor_data, "particle_size");
+    if (cJSON_IsNumber(cjson_particle_size)) {
+      particulateMatterData.particle_size =
+          (double)cjson_particle_size->valuedouble;
+    } else {
+      ESP_LOGI(TAG, "ROOT->particle_size: NOT FOUND");
+    }
+
+    // ----------------------------------------
+    // sensor_data -> mass_density_unit
+    // ----------------------------------------
+    cJSON *cjson_mass_density_unit =
+        cJSON_GetObjectItem(cjson_sensor_data, "mass_density_unit");
+    if (cJSON_IsString(cjson_mass_density_unit)) {
+      strcpy(particulateMatterData.mass_density_unit,
+             cjson_mass_density_unit->valuestring);
+    } else {
+      ESP_LOGI(TAG, "ROOT->mass_density_unit: NOT FOUND");
+    }
+    // ----------------------------------------
+    // sensor_data -> particle_count_unit
+    // ----------------------------------------
+    cJSON *cjson_particle_count_unit =
+        cJSON_GetObjectItem(cjson_sensor_data, "particle_count_unit");
+    if (cJSON_IsString(cjson_particle_count_unit)) {
+      strcpy(particulateMatterData.particle_count_unit,
+             cjson_particle_count_unit->valuestring);
+    } else {
+      ESP_LOGI(TAG, "ROOT->particle_count_unit: NOT FOUND");
+    }
+
+    // ----------------------------------------
+    // sensor_data -> particle_size_unit
+    // ----------------------------------------
+    cJSON *cjson_particle_size_unit =
+        cJSON_GetObjectItem(cjson_sensor_data, "particle_size_unit");
+    if (cJSON_IsString(cjson_particle_size_unit)) {
+      strcpy(particulateMatterData.particle_size_unit,
+             cjson_particle_size_unit->valuestring);
+    } else {
+      ESP_LOGI(TAG, "ROOT->particle_size_unit: NOT FOUND");
+    }
   }
-
-  cJSON *cjson_mass_density =
-      cJSON_GetObjectItem(cjson_sensor_data, "mass_density");
-
-  if (!cJSON_IsObject(cjson_mass_density)) {
-    ESP_LOGI(TAG, "ROOT->sensor_data->mass_density: NOT FOUND");
-    return false;
-  }
-
-  cJSON *cjson_md_pm1_0 = cJSON_GetObjectItem(cjson_mass_density, "pm1.0");
-  cJSON *cjson_md_pm2_5 = cJSON_GetObjectItem(cjson_mass_density, "pm2.5");
-  cJSON *cjson_md_pm4_0 = cJSON_GetObjectItem(cjson_mass_density, "pm4.0");
-  cJSON *cjson_md_pm10 = cJSON_GetObjectItem(cjson_mass_density, "pm10");
-
-  if (!cJSON_IsNumber(cjson_md_pm1_0) || !cJSON_IsNumber(cjson_md_pm2_5) ||
-      !cJSON_IsNumber(cjson_md_pm4_0) || !cJSON_IsNumber(cjson_md_pm10)) {
-    ESP_LOGI(TAG, "ROOT->sensor_data->mass_density->pm(?): NOT FOUND");
-    return false;
-  }
-
-  cJSON *cjson_particle_count =
-      cJSON_GetObjectItem(cjson_sensor_data, "particle_count");
-
-  if (!cJSON_IsObject(cjson_particle_count)) {
-    ESP_LOGI(TAG, "ROOT->sensor_data->particle_count: NOT FOUND");
-    return false;
-  }
-
-  cJSON *cjson_pc_pm0_5 = cJSON_GetObjectItem(cjson_particle_count, "pm0.5");
-  cJSON *cjson_pc_pm1_0 = cJSON_GetObjectItem(cjson_particle_count, "pm1.0");
-  cJSON *cjson_pc_pm2_5 = cJSON_GetObjectItem(cjson_particle_count, "pm2.5");
-  cJSON *cjson_pc_pm4_0 = cJSON_GetObjectItem(cjson_particle_count, "pm4.0");
-  cJSON *cjson_pc_pm10 = cJSON_GetObjectItem(cjson_particle_count, "pm10");
-
-  if (!cJSON_IsNumber(cjson_pc_pm0_5) || !cJSON_IsNumber(cjson_pc_pm1_0) ||
-      !cJSON_IsNumber(cjson_pc_pm2_5) || !cJSON_IsNumber(cjson_pc_pm4_0) ||
-      !cJSON_IsNumber(cjson_pc_pm10)) {
-    ESP_LOGI(TAG, "ROOT->sensor_data->particle_count->pm(?): NOT FOUND");
-    return false;
-  }
-
-  cJSON *cjson_particle_size =
-      cJSON_GetObjectItem(cjson_sensor_data, "particle_size");
-  cJSON *cjson_mass_density_unit =
-      cJSON_GetObjectItem(cjson_sensor_data, "mass_density_unit");
-  cJSON *cjson_particle_count_unit =
-      cJSON_GetObjectItem(cjson_sensor_data, "particle_count_unit");
-  cJSON *cjson_particle_size_unit =
-      cJSON_GetObjectItem(cjson_sensor_data, "particle_size_unit");
-
-  if (!cJSON_IsNumber(cjson_particle_size)) {
-    ESP_LOGI(TAG, "ROOT->particle_size: NOT FOUND");
-    return false;
-  }
-
-  if (!cJSON_IsString(cjson_mass_density_unit)) {
-    ESP_LOGI(TAG, "ROOT->mass_density_unit: NOT FOUND");
-    return false;
-  }
-  if (!cJSON_IsString(cjson_particle_count_unit)) {
-    ESP_LOGI(TAG, "ROOT->particle_count_unit: NOT FOUND");
-    return false;
-  }
-  if (!cJSON_IsString(cjson_particle_size_unit)) {
-    ESP_LOGI(TAG, "ROOT->particle_size_unit: NOT FOUND");
-    return false;
-  }
-
-  particulateMatterData.timestamp = (double)cjson_timestamp->valuedouble;
-  particulateMatterData.mass_density_pm_1_0 =
-      (double)cjson_md_pm1_0->valuedouble;
-  particulateMatterData.mass_density_pm_2_5 =
-      (double)cjson_md_pm2_5->valuedouble;
-  particulateMatterData.mass_density_pm_4_0 =
-      (double)cjson_md_pm4_0->valuedouble;
-  particulateMatterData.mass_density_pm_10 = (double)cjson_md_pm10->valuedouble;
-
-  particulateMatterData.particle_count_0_5 =
-      (double)cjson_pc_pm0_5->valuedouble;
-  particulateMatterData.particle_count_1_0 =
-      (double)cjson_pc_pm1_0->valuedouble;
-  particulateMatterData.particle_count_2_5 =
-      (double)cjson_pc_pm2_5->valuedouble;
-  particulateMatterData.particle_count_4_0 =
-      (double)cjson_pc_pm4_0->valuedouble;
-  particulateMatterData.particle_count_10 = (double)cjson_pc_pm10->valuedouble;
-
-  particulateMatterData.particle_size =
-      (double)cjson_particle_size->valuedouble;
-
-  strcpy(particulateMatterData.mass_density_unit,
-         cjson_mass_density_unit->valuestring);
-
-  strcpy(particulateMatterData.particle_count_unit,
-         cjson_particle_count_unit->valuestring);
-
-  strcpy(particulateMatterData.particle_size_unit,
-         cjson_particle_size_unit->valuestring);
 
   ESP_LOGI(TAG, "SPS DATA PARSED OK.");
   return true;
@@ -303,153 +400,223 @@ bool parse_particulate_matter_data(cJSON *root,
 
 bool parse_imu_data(cJSON *root, ImuData *imu_data) {
 
+  // ----------------------------------------
+  // timestamp
+  // ----------------------------------------
   cJSON *cjson_timestamp = cJSON_GetObjectItem(root, "timestamp");
-
-  if (!cJSON_IsNumber(cjson_timestamp)) {
+  if (cJSON_IsNumber(cjson_timestamp)) {
+    imu_data->timestamp = (double)cjson_timestamp->valuedouble;
+  } else {
     ESP_LOGI(TAG, "ROOT->timestamp: NOT FOUND");
-    return false;
   }
 
-  imu_data->timestamp = (double)cjson_timestamp->valuedouble;
-
+  // ----------------------------------------
+  // sensor_data
+  // ----------------------------------------
   cJSON *cjson_sensor_data_array = cJSON_GetObjectItem(root, "sensor_data");
-
   if (!cJSON_IsArray(cjson_sensor_data_array)) {
     ESP_LOGI(TAG, "ROOT->sensor_data: NOT FOUND");
-    return false;
-  }
+  } else {
+    int sensor_data_array_size = cJSON_GetArraySize(cjson_sensor_data_array);
 
-  int sensor_data_array_size = cJSON_GetArraySize(cjson_sensor_data_array);
+    for (size_t index = 0; index < sensor_data_array_size; index++) {
+      cJSON *cjson_sensor_data =
+          cJSON_GetArrayItem(cjson_sensor_data_array, index);
 
-  for (size_t index = 0; index < sensor_data_array_size; index++) {
-    cJSON *cjson_sensor_data =
-        cJSON_GetArrayItem(cjson_sensor_data_array, index);
-
-    if (!cJSON_IsObject(cjson_sensor_data)) {
-      ESP_LOGI(TAG, "ROOT->sensor_data[%d]: NOT FOUND", index);
-      return false;
-    }
-    cJSON *dev = cJSON_GetObjectItem(cjson_sensor_data, "dev");
-
-    if (strcmp(dev->valuestring, "acctop") == 0) {
-      cJSON *cjson_acctop_unit = cJSON_GetObjectItem(cjson_sensor_data, "unit");
-      cJSON *cjson_acctop_x = cJSON_GetObjectItem(cjson_sensor_data, "x");
-      cJSON *cjson_acctop_y = cJSON_GetObjectItem(cjson_sensor_data, "y");
-      cJSON *cjson_acctop_z = cJSON_GetObjectItem(cjson_sensor_data, "z");
-
-      if (!cJSON_IsString(cjson_acctop_unit)) {
-        ESP_LOGI(TAG, "ROOT->sensor_data[%d]->acctop: unit NOT FOUND", index);
-        return false;
-      }
-
-      if (!cJSON_IsNumber(cjson_acctop_x)) {
-        ESP_LOGI(TAG, "ROOT->sensor_data[%d]->acctop: x NOT FOUND", index);
-        return false;
-      }
-
-      if (!cJSON_IsNumber(cjson_acctop_y)) {
-        ESP_LOGI(TAG, "ROOT->sensor_data[%d]->acctop: y NOT FOUND", index);
-        return false;
-      }
-
-      if (!cJSON_IsNumber(cjson_acctop_z)) {
-        ESP_LOGI(TAG, "ROOT->sensor_data[%d]->acctop: z NOT FOUND", index);
-        return false;
-      }
-
-      strcpy(imu_data->acc_top_unit, cjson_acctop_unit->valuestring);
-      imu_data->acc_top_x = cjson_acctop_x->valuedouble;
-      imu_data->acc_top_y = cjson_acctop_y->valuedouble;
-      imu_data->acc_top_z = cjson_acctop_z->valuedouble;
-    } else if (strcmp(dev->valuestring, "acc") == 0) {
-      cJSON *cjson_acc_unit = cJSON_GetObjectItem(cjson_sensor_data, "unit");
-      cJSON *cjson_acc_x = cJSON_GetObjectItem(cjson_sensor_data, "x");
-      cJSON *cjson_acc_y = cJSON_GetObjectItem(cjson_sensor_data, "y");
-      cJSON *cjson_acc_z = cJSON_GetObjectItem(cjson_sensor_data, "z");
-
-      if (!cJSON_IsString(cjson_acc_unit)) {
-        ESP_LOGI(TAG, "ROOT->sensor_data[%d]->acc: unit NOT FOUND", index);
-        return false;
-      }
-
-      if (!cJSON_IsNumber(cjson_acc_x)) {
-        ESP_LOGI(TAG, "ROOT->sensor_data[%d]->acc: x NOT FOUND", index);
-        return false;
-      }
-
-      if (!cJSON_IsNumber(cjson_acc_y)) {
-        ESP_LOGI(TAG, "ROOT->sensor_data[%d]->acc: y NOT FOUND", index);
-        return false;
-      }
-
-      if (!cJSON_IsNumber(cjson_acc_z)) {
-        ESP_LOGI(TAG, "ROOT->sensor_data[%d]->acc: z NOT FOUND", index);
-        return false;
-      }
-
-      strcpy(imu_data->acc_unit, cjson_acc_unit->valuestring);
-      imu_data->acc_x = (double)cjson_acc_x->valuedouble;
-      imu_data->acc_y = (double)cjson_acc_y->valuedouble;
-      imu_data->acc_z = (double)cjson_acc_z->valuedouble;
-    } else if (strcmp(dev->valuestring, "mag") == 0) {
-      cJSON *cjson_mag_unit = cJSON_GetObjectItem(cjson_sensor_data, "unit");
-      cJSON *cjson_mag_x = cJSON_GetObjectItem(cjson_sensor_data, "x");
-      cJSON *cjson_mag_y = cJSON_GetObjectItem(cjson_sensor_data, "y");
-      cJSON *cjson_mag_z = cJSON_GetObjectItem(cjson_sensor_data, "z");
-
-      if (!cJSON_IsString(cjson_mag_unit)) {
-        ESP_LOGI(TAG, "ROOT->sensor_data[%d]->mag: unit NOT FOUND", index);
-        return false;
-      }
-
-      if (!cJSON_IsNumber(cjson_mag_x)) {
-        ESP_LOGI(TAG, "ROOT->sensor_data[%d]->mag: x NOT FOUND", index);
-        return false;
-      }
-
-      if (!cJSON_IsNumber(cjson_mag_y)) {
-        ESP_LOGI(TAG, "ROOT->sensor_data[%d]->mag: y NOT FOUND", index);
-        return false;
-      }
-
-      if (!cJSON_IsNumber(cjson_mag_z)) {
-        ESP_LOGI(TAG, "ROOT->sensor_data[%d]->mag: z NOT FOUND", index);
-        return false;
-      }
-
-      strcpy(imu_data->mag_unit, cjson_mag_unit->valuestring);
-      imu_data->mag_x = (double)cjson_mag_x->valuedouble;
-      imu_data->mag_y = (double)cjson_mag_y->valuedouble;
-      imu_data->mag_z = (double)cjson_mag_z->valuedouble;
-    } else if (strcmp(dev->valuestring, "gyr") == 0) {
-      cJSON *cjson_gyr_unit = cJSON_GetObjectItem(cjson_sensor_data, "unit");
-      cJSON *cjson_gyr_x = cJSON_GetObjectItem(cjson_sensor_data, "x");
-      cJSON *cjson_gyr_y = cJSON_GetObjectItem(cjson_sensor_data, "y");
-      cJSON *cjson_gyr_z = cJSON_GetObjectItem(cjson_sensor_data, "z");
-
-      if (!cJSON_IsString(cjson_gyr_unit)) {
-        ESP_LOGI(TAG, "ROOT->sensor_data[%d]->gyr: unit NOT FOUND", index);
-        strcpy(imu_data->gyr_unit, "");
+      if (!cJSON_IsObject(cjson_sensor_data)) {
+        ESP_LOGI(TAG, "ROOT->sensor_data[%d]: NOT FOUND", index);
       } else {
-        strcpy(imu_data->gyr_unit, cjson_gyr_unit->valuestring);
-      }
+        // ----------------------------------------
+        // sensor_data[] -> dev
+        // ----------------------------------------
+        cJSON *dev = cJSON_GetObjectItem(cjson_sensor_data, "dev");
+        if (!cJSON_IsObject(dev)) {
+          ESP_LOGI(TAG, "ROOT->sensor_data[%d]->dev: NOT FOUND", index);
 
-      if (!cJSON_IsNumber(cjson_gyr_x)) {
-        ESP_LOGI(TAG, "ROOT->sensor_data[%d]->gyr: x NOT FOUND", index);
-      } else {
-        imu_data->gyr_x = (double)cjson_gyr_x->valuedouble;
-      }
+        } else {
+          // ----------------------------------------
+          // sensor_data[] -> dev[acctop]
+          // ----------------------------------------
+          if (strcmp(dev->valuestring, "acctop") == 0) {
 
-      if (!cJSON_IsNumber(cjson_gyr_y)) {
-        ESP_LOGI(TAG, "ROOT->sensor_data[%d]->gyr: y NOT FOUND", index);
-      } else {
-        imu_data->gyr_y = (double)cjson_gyr_y->valuedouble;
-      }
+            // ----------------------------------------
+            // sensor_data[] -> dev[acctop] -> unit
+            // ----------------------------------------
+            cJSON *cjson_acctop_unit =
+                cJSON_GetObjectItem(cjson_sensor_data, "unit");
+            if (cJSON_IsString(cjson_acctop_unit)) {
+              strcpy(imu_data->acc_top_unit, cjson_acctop_unit->valuestring);
+            } else {
+              ESP_LOGI(TAG, "ROOT->sensor_data[%d]->acctop: unit NOT FOUND",
+                       index);
+            }
 
-      if (!cJSON_IsNumber(cjson_gyr_z)) {
-        ESP_LOGI(TAG, "ROOT->sensor_data[%d]->gyr: z NOT FOUND", index);
-      } else {
-        imu_data->gyr_z = (double)cjson_gyr_z->valuedouble;
+            // ----------------------------------------
+            // sensor_data[] -> dev[acctop] -> x
+            // ----------------------------------------
+            cJSON *cjson_acctop_x = cJSON_GetObjectItem(cjson_sensor_data, "x");
+            if (cJSON_IsNumber(cjson_acctop_x)) {
+              imu_data->acc_top_x = cjson_acctop_x->valuedouble;
+            } else {
+              ESP_LOGI(TAG, "ROOT->sensor_data[%d]->acctop: x NOT FOUND",
+                       index);
+            }
+
+            // ----------------------------------------
+            // sensor_data[] -> dev[acctop] -> y
+            // ----------------------------------------
+            cJSON *cjson_acctop_y = cJSON_GetObjectItem(cjson_sensor_data, "y");
+            if (cJSON_IsNumber(cjson_acctop_y)) {
+              imu_data->acc_top_y = cjson_acctop_y->valuedouble;
+            } else {
+              ESP_LOGI(TAG, "ROOT->sensor_data[%d]->acctop: y NOT FOUND",
+                       index);
+            }
+
+            // ----------------------------------------
+            // sensor_data[] -> dev[acctop] -> z
+            // ----------------------------------------
+            cJSON *cjson_acctop_z = cJSON_GetObjectItem(cjson_sensor_data, "z");
+            if (cJSON_IsNumber(cjson_acctop_z)) {
+              imu_data->acc_top_z = cjson_acctop_z->valuedouble;
+            } else {
+              ESP_LOGI(TAG, "ROOT->sensor_data[%d]->acctop: z NOT FOUND",
+                       index);
+            }
+
+          } else if (strcmp(dev->valuestring, "acc") == 0) {
+            // ----------------------------------------
+            // sensor_data[] -> dev[acc] -> unit
+            // ----------------------------------------
+            cJSON *cjson_acc_unit =
+                cJSON_GetObjectItem(cjson_sensor_data, "unit");
+            if (cJSON_IsString(cjson_acc_unit)) {
+              strcpy(imu_data->acc_unit, cjson_acc_unit->valuestring);
+            } else {
+              ESP_LOGI(TAG, "ROOT->sensor_data[%d]->acc: unit NOT FOUND",
+                       index);
+            }
+
+            // ----------------------------------------
+            // sensor_data[] -> dev[acc] -> x
+            // ----------------------------------------
+            cJSON *cjson_acc_x = cJSON_GetObjectItem(cjson_sensor_data, "x");
+            if (!cJSON_IsNumber(cjson_acc_x)) {
+              imu_data->acc_x = (double)cjson_acc_x->valuedouble;
+            } else {
+              ESP_LOGI(TAG, "ROOT->sensor_data[%d]->acc: x NOT FOUND", index);
+            }
+
+            // ----------------------------------------
+            // sensor_data[] -> dev[acc] -> y
+            // ----------------------------------------
+            cJSON *cjson_acc_y = cJSON_GetObjectItem(cjson_sensor_data, "y");
+            if (!cJSON_IsNumber(cjson_acc_y)) {
+              imu_data->acc_y = (double)cjson_acc_y->valuedouble;
+            } else {
+              ESP_LOGI(TAG, "ROOT->sensor_data[%d]->acc: y NOT FOUND", index);
+            }
+
+            // ----------------------------------------
+            // sensor_data[] -> dev[acc] -> z
+            // ----------------------------------------
+            cJSON *cjson_acc_z = cJSON_GetObjectItem(cjson_sensor_data, "z");
+            if (!cJSON_IsNumber(cjson_acc_z)) {
+              imu_data->acc_z = (double)cjson_acc_z->valuedouble;
+            } else {
+              ESP_LOGI(TAG, "ROOT->sensor_data[%d]->acc: z NOT FOUND", index);
+            }
+
+          } else if (strcmp(dev->valuestring, "mag") == 0) {
+            // ----------------------------------------
+            // sensor_data[] -> dev[mag] -> unit
+            // ----------------------------------------
+            cJSON *cjson_mag_unit =
+                cJSON_GetObjectItem(cjson_sensor_data, "unit");
+
+            if (!cJSON_IsString(cjson_mag_unit)) {
+              strcpy(imu_data->mag_unit, cjson_mag_unit->valuestring);
+            } else {
+              ESP_LOGI(TAG, "ROOT->sensor_data[%d]->mag: unit NOT FOUND",
+                       index);
+            }
+
+            // ----------------------------------------
+            // sensor_data[] -> dev[mag] -> x
+            // ----------------------------------------
+            cJSON *cjson_mag_x = cJSON_GetObjectItem(cjson_sensor_data, "x");
+            if (!cJSON_IsNumber(cjson_mag_x)) {
+              imu_data->mag_x = (double)cjson_mag_x->valuedouble;
+            } else {
+              ESP_LOGI(TAG, "ROOT->sensor_data[%d]->mag: x NOT FOUND", index);
+            }
+
+            // ----------------------------------------
+            // sensor_data[] -> dev[mag] -> y
+            // ----------------------------------------
+            cJSON *cjson_mag_y = cJSON_GetObjectItem(cjson_sensor_data, "y");
+            if (!cJSON_IsNumber(cjson_mag_y)) {
+              imu_data->mag_y = (double)cjson_mag_y->valuedouble;
+            } else {
+              ESP_LOGI(TAG, "ROOT->sensor_data[%d]->mag: y NOT FOUND", index);
+            }
+
+            // ----------------------------------------
+            // sensor_data[] -> dev[mag] -> z
+            // ----------------------------------------
+            cJSON *cjson_mag_z = cJSON_GetObjectItem(cjson_sensor_data, "z");
+            if (!cJSON_IsNumber(cjson_mag_z)) {
+              imu_data->mag_z = (double)cjson_mag_z->valuedouble;
+            } else {
+              ESP_LOGI(TAG, "ROOT->sensor_data[%d]->mag: z NOT FOUND", index);
+            }
+
+          } else if (strcmp(dev->valuestring, "gyr") == 0) {
+            // ----------------------------------------
+            // sensor_data[] -> dev[gyr] -> unit
+            // ----------------------------------------
+            cJSON *cjson_gyr_unit =
+                cJSON_GetObjectItem(cjson_sensor_data, "unit");
+
+            if (cJSON_IsString(cjson_gyr_unit)) {
+              strcpy(imu_data->gyr_unit, cjson_gyr_unit->valuestring);
+            } else {
+              ESP_LOGI(TAG, "ROOT->sensor_data[%d]->gyr: unit NOT FOUND",
+                       index);
+              strcpy(imu_data->gyr_unit, "");
+            }
+
+            // ----------------------------------------
+            // sensor_data[] -> dev[gyr] -> x
+            // ----------------------------------------
+            cJSON *cjson_gyr_x = cJSON_GetObjectItem(cjson_sensor_data, "x");
+            if (cJSON_IsNumber(cjson_gyr_x)) {
+              imu_data->gyr_x = (double)cjson_gyr_x->valuedouble;
+            } else {
+              ESP_LOGI(TAG, "ROOT->sensor_data[%d]->gyr: x NOT FOUND", index);
+            }
+
+            // ----------------------------------------
+            // sensor_data[] -> dev[gyr] -> y
+            // ----------------------------------------
+            cJSON *cjson_gyr_y = cJSON_GetObjectItem(cjson_sensor_data, "y");
+            if (cJSON_IsNumber(cjson_gyr_y)) {
+              imu_data->gyr_y = (double)cjson_gyr_y->valuedouble;
+            } else {
+              ESP_LOGI(TAG, "ROOT->sensor_data[%d]->gyr: y NOT FOUND", index);
+            }
+
+            // ----------------------------------------
+            // sensor_data[] -> dev[gyr] -> z
+            // ----------------------------------------
+            cJSON *cjson_gyr_z = cJSON_GetObjectItem(cjson_sensor_data, "z");
+            if (cJSON_IsNumber(cjson_gyr_z)) {
+              imu_data->gyr_z = (double)cjson_gyr_z->valuedouble;
+            } else {
+              ESP_LOGI(TAG, "ROOT->sensor_data[%d]->gyr: z NOT FOUND", index);
+            }
+          }
+        }
       }
     }
   }
