@@ -268,7 +268,10 @@ async fn mqtt_status_topic_callback(text: &str, tx: &Sender<String>, nopingpong:
     }
 }
 
-async fn mqtt_command_topic_callback(command_msg: &str, tx: &Sender<String>) {
+async fn mqtt_command_topic_callback(command_msg: &str, tx: &Sender<String>, nopingpong: bool) {
+    if nopingpong && command_msg == "ping" || command_msg == "pong" {
+        return;
+    }
     let json_status_msg: serde_json::Value = serde_json::json!({
         "topic": "status",
         "msg": format!("COMMAND {}",command_msg),
@@ -611,7 +614,7 @@ async fn mqtt_task(
                     if topic_type == TopicType::Status {
                         mqtt_status_topic_callback(&text, &mqtt_queue_channel_tx, nopingpong).await
                     } else if topic_type == TopicType::Command {
-                        mqtt_command_topic_callback(&text, &mqtt_queue_channel_tx).await
+                        mqtt_command_topic_callback(&text, &mqtt_queue_channel_tx, nopingpong).await
                     }
 
                     match serde_json::from_str::<serde_json::Value>(text) {
