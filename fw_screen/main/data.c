@@ -501,7 +501,7 @@ bool parse_imu_data(cJSON *root, ImuData *imu_data) {
             // sensor_data[] -> dev[acc] -> x
             // ----------------------------------------
             cJSON *cjson_acc_x = cJSON_GetObjectItem(cjson_sensor_data, "x");
-            if (!cJSON_IsNumber(cjson_acc_x)) {
+            if (cJSON_IsNumber(cjson_acc_x)) {
               imu_data->acc_x = (double)cjson_acc_x->valuedouble;
             } else {
               ESP_LOGI(TAG, "ROOT->sensor_data[%d]->acc: x NOT FOUND", index);
@@ -511,7 +511,7 @@ bool parse_imu_data(cJSON *root, ImuData *imu_data) {
             // sensor_data[] -> dev[acc] -> y
             // ----------------------------------------
             cJSON *cjson_acc_y = cJSON_GetObjectItem(cjson_sensor_data, "y");
-            if (!cJSON_IsNumber(cjson_acc_y)) {
+            if (cJSON_IsNumber(cjson_acc_y)) {
               imu_data->acc_y = (double)cjson_acc_y->valuedouble;
             } else {
               ESP_LOGI(TAG, "ROOT->sensor_data[%d]->acc: y NOT FOUND", index);
@@ -521,7 +521,7 @@ bool parse_imu_data(cJSON *root, ImuData *imu_data) {
             // sensor_data[] -> dev[acc] -> z
             // ----------------------------------------
             cJSON *cjson_acc_z = cJSON_GetObjectItem(cjson_sensor_data, "z");
-            if (!cJSON_IsNumber(cjson_acc_z)) {
+            if (cJSON_IsNumber(cjson_acc_z)) {
               imu_data->acc_z = (double)cjson_acc_z->valuedouble;
             } else {
               ESP_LOGI(TAG, "ROOT->sensor_data[%d]->acc: z NOT FOUND", index);
@@ -534,7 +534,7 @@ bool parse_imu_data(cJSON *root, ImuData *imu_data) {
             cJSON *cjson_mag_unit =
                 cJSON_GetObjectItem(cjson_sensor_data, "unit");
 
-            if (!cJSON_IsString(cjson_mag_unit)) {
+            if (cJSON_IsString(cjson_mag_unit)) {
               strcpy(imu_data->mag_unit, cjson_mag_unit->valuestring);
             } else {
               ESP_LOGI(TAG, "ROOT->sensor_data[%d]->mag: unit NOT FOUND",
@@ -545,7 +545,7 @@ bool parse_imu_data(cJSON *root, ImuData *imu_data) {
             // sensor_data[] -> dev[mag] -> x
             // ----------------------------------------
             cJSON *cjson_mag_x = cJSON_GetObjectItem(cjson_sensor_data, "x");
-            if (!cJSON_IsNumber(cjson_mag_x)) {
+            if (cJSON_IsNumber(cjson_mag_x)) {
               imu_data->mag_x = (double)cjson_mag_x->valuedouble;
             } else {
               ESP_LOGI(TAG, "ROOT->sensor_data[%d]->mag: x NOT FOUND", index);
@@ -555,7 +555,7 @@ bool parse_imu_data(cJSON *root, ImuData *imu_data) {
             // sensor_data[] -> dev[mag] -> y
             // ----------------------------------------
             cJSON *cjson_mag_y = cJSON_GetObjectItem(cjson_sensor_data, "y");
-            if (!cJSON_IsNumber(cjson_mag_y)) {
+            if (cJSON_IsNumber(cjson_mag_y)) {
               imu_data->mag_y = (double)cjson_mag_y->valuedouble;
             } else {
               ESP_LOGI(TAG, "ROOT->sensor_data[%d]->mag: y NOT FOUND", index);
@@ -565,7 +565,7 @@ bool parse_imu_data(cJSON *root, ImuData *imu_data) {
             // sensor_data[] -> dev[mag] -> z
             // ----------------------------------------
             cJSON *cjson_mag_z = cJSON_GetObjectItem(cjson_sensor_data, "z");
-            if (!cJSON_IsNumber(cjson_mag_z)) {
+            if (cJSON_IsNumber(cjson_mag_z)) {
               imu_data->mag_z = (double)cjson_mag_z->valuedouble;
             } else {
               ESP_LOGI(TAG, "ROOT->sensor_data[%d]->mag: z NOT FOUND", index);
